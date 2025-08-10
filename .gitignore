@@ -1,0 +1,6 @@
+tapoenv/
+__pycache__/
+*.pyc
+.env
+.geany/
+logs/
