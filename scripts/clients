@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Show DHCP leases + Wi-Fi RSSI for clients on wlan0 (NetworkManager dnsmasq)
+# Usage: sudo clients [wlan-interface]
+
+set -euo pipefail
+
+IFACE="${1:-wlan0}"
+LEASES_FILE="/var/lib/NetworkManager/dnsmasq-${IFACE}.leases"
+
+# Require root because `iw station dump` needs it
+if [[ $EUID -ne 0 ]]; then
+  echo "Please run as root: sudo $0 ${IFACE}" >&2
+  exit 1
+fi
+
+# Basic checks
+[[ -r "$LEASES_FILE" ]] || { echo "Leases file not found: $LEASES_FILE" >&2; exit 2; }
+command -v iw >/dev/null || { echo "Missing 'iw' command." >&2; exit 3; }
+
+# Build maps from leases: MAC -> IP, Hostname
+declare -A IP_BY_MAC
+declare -A HOST_BY_MAC
+
+while read -r expiry mac ip host rest; do
+  [[ -z "${mac:-}" || -z "${ip:-}" ]] && continue
+  IP_BY_MAC["${mac,,}"]="$ip"
+  if [[ -z "${host:-}" || "$host" == "*" ]]; then
+    HOST_BY_MAC["${mac,,}"]="(unknown)"
+  else
+    HOST_BY_MAC["${mac,,}"]="$host"
+  fi
+done < "$LEASES_FILE"
+
+# Parse iw station dump to get: MAC -> signal (dBm)
+declare -A SIG_BY_MAC
+curmac=""
+while IFS= read -r line; do
+  if [[ "$line" =~ ^Station[[:space:]]+([0-9a-fA-F:]{17})[[:space:]]+ ]]; then
+    curmac="${BASH_REMATCH[1],,}"
+  elif [[ -n "$curmac" && "$line" =~ [[:space:]]*signal:[[:space:]]*(-?[0-9]+) ]]; then
+    SIG_BY_MAC["$curmac"]="${BASH_REMATCH[1]}"
+    # ❌ don’t unset curmac, keep reading until next Station
+  fi
+done < <(iw dev "$IFACE" station dump 2>/dev/null || true)
+
+# Print header
+printf "%-15s  %-17s  %-20s  %s\n" "IP" "MAC" "Hostname" "Signal"
+printf "%0.s-" {1..70}; echo
+
+# Show all devices in leases, sorted by IP
+for mac in "${!IP_BY_MAC[@]}"; do
+  ip="${IP_BY_MAC[$mac]}"
+  host="${HOST_BY_MAC[$mac]}"
+  sig="${SIG_BY_MAC[$mac]:--}"
+  if [[ "$sig" == "-" ]]; then
+    sig_str="-"
+  else
+    sig_str="${sig} dBm"
+  fi
+  printf "%-15s  %-17s  %-20s  %s\n" "$ip" "$mac" "$host" "$sig_str"
+done | sort -V
