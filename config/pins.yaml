@@ -1,0 +1,16 @@
+# GPIO pin mappings for hardware components
+led_status: 17          # Status LED
+button_input: 27        # User button
+relay_switch: 22        # Relay control
+
+# I2C bus
+i2c:
+  sda: 2
+  scl: 3
+
+# SPI bus
+spi:
+  mosi: 10
+  miso: 9
+  sck: 11
+  cs0: 8
