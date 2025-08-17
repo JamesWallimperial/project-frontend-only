@@ -1,6 +1,12 @@
 tapoenv/
-__pycache__/
+.venv/
+venv/
+pycache/
 *.pyc
-.env
+*.pyo
+.pyd
 .geany/
+.env
+config/.local.yaml
 logs/
+.DS_Store
