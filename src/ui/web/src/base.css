@@ -1,0 +1,17 @@
+:root {
+  --bg: #0b1220;
+  --ring: #1f2a44;
+  --accent: #10b981;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
