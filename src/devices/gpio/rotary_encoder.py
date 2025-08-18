@@ -139,7 +139,8 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description="Rotary encoder event reporter")
     parser.add_argument("--config", help="Path to JSON config file")
-    parser.add_argument("--host", help="API host, e.g. http://localhost:8000")
+    parser.add_argument("--host", help="API host name, e.g. api.example.com")
+    parser.add_argument("--port", help="API port, e.g. 8000")
     return parser.parse_args()
 
 
@@ -156,11 +157,16 @@ def main() -> None:  # pragma: no cover - hardware dependent
     args = parse_args()
     config = load_config(args.config)
 
-    api_host = (
-        args.host
-        or config.get("host")
-        or os.environ.get("API_HOST", "http://localhost:8000")
-    )
+    env_host = os.environ.get("API_HOST", "localhost")
+    env_port = os.environ.get("API_PORT", "8000")
+
+    host = args.host or config.get("host") or env_host
+    port = args.port or config.get("port") or env_port
+
+    if host.startswith("http://") or host.startswith("https://"):
+        api_host = host.rstrip("/")
+    else:
+        api_host = f"http://{host}:{port}"
 
     encoders_cfg = config.get(
         "encoders",

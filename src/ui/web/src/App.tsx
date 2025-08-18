@@ -8,8 +8,10 @@ export default function App() {
   const [lastDevice, setLastDevice] = useState<string | null>(null);
 
   useEffect(() => {
-    const host = import.meta.env.VITE_API_HOST;
-    const ws = new WebSocket(`ws://${host}/events`);
+    const host = import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
+    const port = import.meta.env.VITE_API_PORT || window.location.port || "8000";
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${protocol}://${host}:${port}/events`);
 
     ws.onmessage = (event) => {
       try {
