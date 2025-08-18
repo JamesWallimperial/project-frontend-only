@@ -57,6 +57,11 @@
   font-size: clamp(12px, 3vmin, 18px);
 }
 
+.qrImage {
+  width: 40vmin;
+  height: 40vmin;
+}
+
 .primaryBtn {
   appearance: none;
   border: none;

@@ -24,7 +24,11 @@ export default function AccessPoint({ onContinue }: Props) {
               <strong>Password:</strong> {password}
             </div>
           </div>
-          <div className={styles.qrPlaceholder}>QR</div>
+          <img
+            src="/wifisetup.png"
+            alt="Setup instructions QR"
+            className={styles.qrImage}
+          />
           <button className={styles.primaryBtn} onClick={onContinue}>
             Continue: Home Assistant setup
           </button>
