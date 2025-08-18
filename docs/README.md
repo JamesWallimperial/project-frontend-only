@@ -41,5 +41,7 @@ Typical problems and fixes:
 - *Missing packages:* rerun `pip install -r config/requirements.txt`.
 - *Hardware not responding:* verify GPIO pins in `config/pins.yaml` and
 connections.
+- *Web UI build errors:* see [Web UI build errors](TROUBLESHOOTING.md#web-ui-build-errors)
+  for failures such as `Illegal instruction` or `ERR_PACKAGE_PATH_NOT_EXPORTED`.
 
 For extended guidance refer to [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
