@@ -15,7 +15,7 @@ export default function App() {
       try {
         const { type, device, payload } = JSON.parse(event.data);
         setLastDevice(device);
-        if (type === "button") {
+        if (type === "button" && payload === "press") {
           setStep((prev) => prev + 1);
         } else if (type === "rotate") {
           if (payload === "cw") {

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-connected: List[WebSocket] = []
+connected: list[WebSocket] = []
 
 
 class Event(BaseModel):

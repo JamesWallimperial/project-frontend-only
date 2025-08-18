@@ -26,7 +26,7 @@ import json
 import os
 import threading
 import time
-from typing import Dict, Iterable, List
+from typing import Iterable
 
 import RPi.GPIO as GPIO
 import requests
@@ -105,10 +105,10 @@ class EncoderFactory:
     def __init__(self, api_host: str) -> None:
         self.api_url = f"{api_host.rstrip('/')}/events"
         GPIO.setmode(GPIO.BCM)
-        self.watchers: List[RotaryEncoderWatcher] = []
+        self.watchers: list[RotaryEncoderWatcher] = []
 
     # ------------------------------------------------------------------
-    def spawn(self, encoder_configs: Iterable[Dict[str, int | str]]) -> List[RotaryEncoderWatcher]:
+    def spawn(self, encoder_configs: Iterable[dict[str, int | str]]) -> list[RotaryEncoderWatcher]:
         """Create and start watchers for each encoder configuration."""
 
         for cfg in encoder_configs:
@@ -143,7 +143,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_config(path: str | None) -> Dict:
+def load_config(path: str | None) -> dict:
     """Load a JSON configuration file."""
 
     if not path:
