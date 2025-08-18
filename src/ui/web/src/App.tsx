@@ -3,16 +3,19 @@ import Startup from "./startup/Startup";
 import AccessPoint from "./setup/AccessPoint";
 import HomeAssistant from "./setup/HomeAssistant";
 import DeviceSelection from "./setup/DeviceSelection";
+import CategorySelection from "./setup/CategorySelection";
 
 export default function App() {
   const [step, setStep] = useState(0);
   const [lastDevice, setLastDevice] = useState<string | null>(null);
   const [devices, setDevices] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
   const stepRef = useRef(step);
   const devicesRef = useRef(devices);
   const selectedRef = useRef(selectedIndex);
+  const selectedDeviceRef = useRef(selectedDevice);
 
   useEffect(() => {
     stepRef.current = step;
@@ -23,6 +26,9 @@ export default function App() {
   useEffect(() => {
     selectedRef.current = selectedIndex;
   }, [selectedIndex]);
+  useEffect(() => {
+    selectedDeviceRef.current = selectedDevice;
+  }, [selectedDevice]);
 
   useEffect(() => {
     const host =
@@ -51,8 +57,44 @@ export default function App() {
             }
           } else if (type === "button" && payload === "press") {
             const selected = devicesRef.current[selectedRef.current];
-            console.log("Selected device:", selected);
+            setSelectedDevice(selected);
+            setSelectedIndex(0);
             setStep((prev) => prev + 1);
+          }
+        } else if (stepRef.current === 4) {
+          if (type === "rotate" && categories.length > 0) {
+            if (payload === "cw") {
+              setSelectedIndex((prev) => (prev + 1) % categories.length);
+            } else if (payload === "ccw") {
+              setSelectedIndex(
+                (prev) => (prev - 1 + categories.length) % categories.length
+              );
+            }
+          } else if (type === "button" && payload === "press") {
+            const category = categories[selectedRef.current];
+            const deviceName = selectedDeviceRef.current;
+            if (deviceName) {
+              const host =
+                import.meta.env.VITE_API_HOST ||
+                window.location.hostname ||
+                "localhost";
+              const port =
+                import.meta.env.VITE_API_PORT || window.location.port || "8000";
+              const protocol =
+                window.location.protocol === "https:" ? "https" : "http";
+              fetch(
+                `${protocol}://${host}:${port}/devices/${deviceName}/category`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ category }),
+                }
+              )
+                .then(() => setStep((prev) => prev + 1))
+                .catch((err) =>
+                  console.error("Failed to persist category", err)
+                );
+            }
           }
         } else {
           if (type === "button" && payload === "press") {
@@ -87,9 +129,12 @@ export default function App() {
           setSelectedIndex(0);
         })
         .catch((err) => console.error("Failed to load devices", err));
+    } else if (step === 4) {
+      setSelectedIndex(0);
     }
   }, [step]);
 
+  const categories = ["Light", "Outlet", "Switch", "Sensor"];
   let content;
   switch (step) {
     case 0:
@@ -104,6 +149,14 @@ export default function App() {
     case 3:
       content = (
         <DeviceSelection devices={devices} selectedIndex={selectedIndex} />
+      );
+      break;
+    case 4:
+      content = (
+        <CategorySelection
+          categories={categories}
+          selectedIndex={selectedIndex}
+        />
       );
       break;
     default:
