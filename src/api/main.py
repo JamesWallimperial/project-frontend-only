@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from typing import Any
+from pathlib import Path
+import subprocess
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src.devices.gpio.leds import turn_off, turn_on
+from src.api.clients import list_clients
 
 
 app = FastAPI()
@@ -37,6 +40,12 @@ class LEDState(BaseModel):
     """Desired state of an LED."""
 
     on: bool
+
+
+class MACAddress(BaseModel):
+    """Identifier for a Wi-Fi client."""
+
+    mac: str
 
 
 @app.websocket("/events")
@@ -76,3 +85,39 @@ async def set_led(pin: int, state: LEDState) -> dict[str, Any]:
     else:
         turn_off(pin)
     return {"pin": pin, "on": state.on}
+
+
+@app.get("/wifi/clients")
+async def wifi_clients() -> list[dict[str, Any]]:
+    """Return connected Wi-Fi clients.
+
+    Requires elevated privileges because ``iw`` needs root.
+    """
+
+    return list_clients()
+
+
+def _wanctl() -> str:
+    return str(Path(__file__).resolve().parents[2] / "scripts" / "wanctl")
+
+
+@app.post("/wifi/block")
+async def wifi_block(client: MACAddress) -> dict[str, Any]:
+    """Block WAN access for a client.
+
+    Requires elevated privileges because ``iptables`` needs root.
+    """
+
+    subprocess.run([_wanctl(), "block", client.mac], check=False)
+    return {"mac": client.mac}
+
+
+@app.post("/wifi/unblock")
+async def wifi_unblock(client: MACAddress) -> dict[str, Any]:
+    """Unblock WAN access for a client.
+
+    Requires elevated privileges because ``iptables`` needs root.
+    """
+
+    subprocess.run([_wanctl(), "unblock", client.mac], check=False)
+    return {"mac": client.mac}
