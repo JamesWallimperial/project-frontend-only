@@ -26,6 +26,30 @@ pip install -r config/requirements.txt
 - **UI options:** edit `config/ui.json`.
 - **Hardware pins:** see `config/pins.yaml` for GPIO mappings.
 
+### Environment variables
+
+Runtime services derive their API endpoints from the following variables:
+
+| Variable | Default | Used by |
+| --- | --- | --- |
+| `API_HOST` | `localhost` | Python device adapters |
+| `API_PORT` | `8000` | Python device adapters |
+| `VITE_API_HOST` | `localhost` | Web UI (Vite) |
+| `VITE_API_PORT` | `8000` | Web UI (Vite) |
+
+To override the defaults, set the variables in your shell before running the
+services or create `.env` files:
+
+```bash
+export API_HOST=myserver.example.com
+export API_PORT=9000
+
+# For the web UI
+cd src/ui/web
+echo "VITE_API_HOST=myserver.example.com" >> .env
+echo "VITE_API_PORT=9000" >> .env
+```
+
 ## Architecture
 The platform is composed of:
 - **API service** exposing REST endpoints for device and status control.
