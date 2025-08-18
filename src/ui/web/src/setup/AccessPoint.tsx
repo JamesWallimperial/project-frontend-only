@@ -3,8 +3,8 @@ import styles from "./Setup.module.css";
 type Props = { onContinue?: () => void };
 
 export default function AccessPoint({ onContinue }: Props) {
-  const ssid = "MyHub-AP";
-  const password = "changeme123";
+  const ssid = "ECLIPSE";
+  const password = "JAMES123";
 
   return (
     <div className={styles.app}>
