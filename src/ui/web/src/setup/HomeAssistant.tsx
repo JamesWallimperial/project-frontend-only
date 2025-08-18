@@ -13,7 +13,9 @@ export default function HomeAssistant({ onContinue }: Props) {
               Scan on your phone to configure devices
             </div>
           </div>
-          <div className={styles.qrPlaceholder}>QR</div>
+          <img src="/ha.png"
+               alt="Home Assistant access QR"
+               className={styles.qrImage} />
           <button className={styles.primaryBtn} onClick={onContinue}>
             Continue: Set up devices
           </button>
