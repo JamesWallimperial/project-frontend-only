@@ -8,12 +8,19 @@ import CategorySelection from "./setup/CategorySelection";
 export default function App() {
   const [step, setStep] = useState(0);
   const [lastDevice, setLastDevice] = useState<string | null>(null);
-  const [devices, setDevices] = useState<string[]>([]);
+  interface WiFiClient {
+    ip: string;
+    mac: string;
+    hostname: string;
+    signal?: number | null;
+  }
+
+  const [clients, setClients] = useState<WiFiClient[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
   const stepRef = useRef(step);
-  const devicesRef = useRef(devices);
+  const clientsRef = useRef(clients);
   const selectedRef = useRef(selectedIndex);
   const selectedDeviceRef = useRef(selectedDevice);
 
@@ -21,8 +28,8 @@ export default function App() {
     stepRef.current = step;
   }, [step]);
   useEffect(() => {
-    devicesRef.current = devices;
-  }, [devices]);
+    clientsRef.current = clients;
+  }, [clients]);
   useEffect(() => {
     selectedRef.current = selectedIndex;
   }, [selectedIndex]);
@@ -42,26 +49,26 @@ export default function App() {
       try {
         const { type, device, payload } = JSON.parse(event.data);
         setLastDevice(device);
-        if (stepRef.current === 3) {
-          if (type === "rotate" && devicesRef.current.length > 0) {
-            if (payload === "cw") {
-              setSelectedIndex(
-                (prev) => (prev + 1) % devicesRef.current.length
-              );
-            } else if (payload === "ccw") {
-              setSelectedIndex(
-                (prev) =>
-                  (prev - 1 + devicesRef.current.length) %
-                  devicesRef.current.length
-              );
+          if (stepRef.current === 3) {
+            if (type === "rotate" && clientsRef.current.length > 0) {
+              if (payload === "cw") {
+                setSelectedIndex(
+                  (prev) => (prev + 1) % clientsRef.current.length
+                );
+              } else if (payload === "ccw") {
+                setSelectedIndex(
+                  (prev) =>
+                    (prev - 1 + clientsRef.current.length) %
+                    clientsRef.current.length
+                );
+              }
+            } else if (type === "button" && payload === "press") {
+              const selected = clientsRef.current[selectedRef.current];
+              setSelectedDevice(selected?.mac ?? null);
+              setSelectedIndex(0);
+              setStep((prev) => prev + 1);
             }
-          } else if (type === "button" && payload === "press") {
-            const selected = devicesRef.current[selectedRef.current];
-            setSelectedDevice(selected);
-            setSelectedIndex(0);
-            setStep((prev) => prev + 1);
-          }
-        } else if (stepRef.current === 4) {
+          } else if (stepRef.current === 4) {
           if (type === "rotate" && categories.length > 0) {
             if (payload === "cw") {
               setSelectedIndex((prev) => (prev + 1) % categories.length);
@@ -116,22 +123,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (step === 3) {
-      const host =
-        import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
-      const port =
-        import.meta.env.VITE_API_PORT || window.location.port || "8000";
-      const protocol = window.location.protocol === "https:" ? "https" : "http";
-      fetch(`${protocol}://${host}:${port}/devices`)
-        .then((res) => res.json())
-        .then((data: string[]) => {
-          setDevices(data);
-          setSelectedIndex(0);
-        })
-        .catch((err) => console.error("Failed to load devices", err));
-    } else if (step === 4) {
-      setSelectedIndex(0);
-    }
+      if (step === 3) {
+        const host =
+          import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
+        const port =
+          import.meta.env.VITE_API_PORT || window.location.port || "8000";
+        const protocol = window.location.protocol === "https:" ? "https" : "http";
+        fetch(`${protocol}://${host}:${port}/wifi/clients`)
+          .then((res) => res.json())
+          .then((data: WiFiClient[]) => {
+            setClients(data);
+            setSelectedIndex(0);
+          })
+          .catch((err) => console.error("Failed to load clients", err));
+      } else if (step === 4) {
+        setSelectedIndex(0);
+      }
   }, [step]);
 
   const categories = ["Light", "Outlet", "Switch", "Sensor"];
@@ -147,9 +154,9 @@ export default function App() {
       content = <HomeAssistant onContinue={() => setStep(3)} />;
       break;
     case 3:
-      content = (
-        <DeviceSelection devices={devices} selectedIndex={selectedIndex} />
-      );
+        content = (
+          <DeviceSelection clients={clients} selectedIndex={selectedIndex} />
+        );
       break;
     case 4:
       content = (
