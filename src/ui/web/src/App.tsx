@@ -1,15 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Startup from "./startup/Startup";
 import AccessPoint from "./setup/AccessPoint";
 import HomeAssistant from "./setup/HomeAssistant";
+import DeviceSelection from "./setup/DeviceSelection";
 
 export default function App() {
   const [step, setStep] = useState(0);
   const [lastDevice, setLastDevice] = useState<string | null>(null);
+  const [devices, setDevices] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const stepRef = useRef(step);
+  const devicesRef = useRef(devices);
+  const selectedRef = useRef(selectedIndex);
 
   useEffect(() => {
-    const host = import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
-    const port = import.meta.env.VITE_API_PORT || window.location.port || "8000";
+    stepRef.current = step;
+  }, [step]);
+  useEffect(() => {
+    devicesRef.current = devices;
+  }, [devices]);
+  useEffect(() => {
+    selectedRef.current = selectedIndex;
+  }, [selectedIndex]);
+
+  useEffect(() => {
+    const host =
+      import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
+    const port =
+      import.meta.env.VITE_API_PORT || window.location.port || "8000";
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${protocol}://${host}:${port}/events`);
 
@@ -17,13 +36,33 @@ export default function App() {
       try {
         const { type, device, payload } = JSON.parse(event.data);
         setLastDevice(device);
-        if (type === "button" && payload === "press") {
-          setStep((prev) => prev + 1);
-        } else if (type === "rotate") {
-          if (payload === "cw") {
+        if (stepRef.current === 3) {
+          if (type === "rotate" && devicesRef.current.length > 0) {
+            if (payload === "cw") {
+              setSelectedIndex(
+                (prev) => (prev + 1) % devicesRef.current.length
+              );
+            } else if (payload === "ccw") {
+              setSelectedIndex(
+                (prev) =>
+                  (prev - 1 + devicesRef.current.length) %
+                  devicesRef.current.length
+              );
+            }
+          } else if (type === "button" && payload === "press") {
+            const selected = devicesRef.current[selectedRef.current];
+            console.log("Selected device:", selected);
             setStep((prev) => prev + 1);
-          } else if (payload === "ccw") {
-            setStep((prev) => Math.max(prev - 1, 0));
+          }
+        } else {
+          if (type === "button" && payload === "press") {
+            setStep((prev) => prev + 1);
+          } else if (type === "rotate") {
+            if (payload === "cw") {
+              setStep((prev) => prev + 1);
+            } else if (payload === "ccw") {
+              setStep((prev) => Math.max(prev - 1, 0));
+            }
           }
         }
       } catch (err) {
@@ -34,6 +73,23 @@ export default function App() {
     return () => ws.close();
   }, []);
 
+  useEffect(() => {
+    if (step === 3) {
+      const host =
+        import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
+      const port =
+        import.meta.env.VITE_API_PORT || window.location.port || "8000";
+      const protocol = window.location.protocol === "https:" ? "https" : "http";
+      fetch(`${protocol}://${host}:${port}/devices`)
+        .then((res) => res.json())
+        .then((data: string[]) => {
+          setDevices(data);
+          setSelectedIndex(0);
+        })
+        .catch((err) => console.error("Failed to load devices", err));
+    }
+  }, [step]);
+
   let content;
   switch (step) {
     case 0:
@@ -43,8 +99,11 @@ export default function App() {
       content = <AccessPoint onContinue={() => setStep(2)} />;
       break;
     case 2:
+      content = <HomeAssistant onContinue={() => setStep(3)} />;
+      break;
+    case 3:
       content = (
-        <HomeAssistant onContinue={() => console.log("setup devices")} />
+        <DeviceSelection devices={devices} selectedIndex={selectedIndex} />
       );
       break;
     default:
