@@ -1,11 +1,12 @@
-"""Simple API exposing button events via WebSocket and HTTP."""
+"""Simple API exposing generic events via WebSocket and HTTP."""
 
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 
 app = FastAPI()
@@ -22,9 +23,17 @@ app.add_middleware(
 connected: List[WebSocket] = []
 
 
-@app.websocket("/events/button")
-async def button_events(ws: WebSocket) -> None:
-    """WebSocket endpoint clients subscribe to for button events."""
+class Event(BaseModel):
+    """Representation of a generic event."""
+
+    type: str
+    device: str
+    payload: Any
+
+
+@app.websocket("/events")
+async def events(ws: WebSocket) -> None:
+    """WebSocket endpoint clients subscribe to for events."""
     await ws.accept()
     connected.append(ws)
     try:
@@ -38,10 +47,10 @@ async def button_events(ws: WebSocket) -> None:
             connected.remove(ws)
 
 
-@app.post("/events/button")
-async def emit_button_event() -> dict[str, str]:
-    """HTTP endpoint to broadcast a 'next' event to all listeners."""
-    payload = {"event": "next"}
+@app.post("/events")
+async def emit_event(event: Event) -> dict[str, Any]:
+    """HTTP endpoint to broadcast an event to all listeners."""
+    payload = event.dict()
     for ws in list(connected):
         try:
             await ws.send_json(payload)
