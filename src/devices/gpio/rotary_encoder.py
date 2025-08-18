@@ -17,6 +17,9 @@ Example configuration JSON::
 
 Run with ``python rotary_encoder.py --config config.json`` to start all
 encoders defined in the configuration.
+
+Alternatively, pass one or more ``--pin-a``, ``--pin-b``, ``--pin-sw`` and
+``--device-id`` arguments to configure encoders directly on the command line.
 """
 
 from __future__ import annotations
@@ -48,7 +51,11 @@ class RotaryEncoderWatcher(threading.Thread):
     def send_event(self, event_type: str, payload: str) -> None:
         """Send an event to the API."""
 
-        data = {"type": event_type, "device": self.device_id, "payload": payload}
+        data = {
+            "type": event_type,
+            "device_id": self.device_id,
+            "payload": payload,
+        }
         try:
             requests.post(self.api_url, json=data, timeout=2)
         except Exception as exc:  # pragma: no cover - network/hardware dependent
@@ -141,6 +148,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", help="Path to JSON config file")
     parser.add_argument("--host", help="API host name, e.g. api.example.com")
     parser.add_argument("--port", help="API port, e.g. 8000")
+    parser.add_argument("--pin-a", type=int, action="append", dest="pin_a")
+    parser.add_argument("--pin-b", type=int, action="append", dest="pin_b")
+    parser.add_argument("--pin-sw", type=int, action="append", dest="pin_sw")
+    parser.add_argument("--device-id", action="append", dest="device_id")
     return parser.parse_args()
 
 
@@ -168,13 +179,27 @@ def main() -> None:  # pragma: no cover - hardware dependent
     else:
         api_host = f"http://{host}:{port}"
 
-    encoders_cfg = config.get(
-        "encoders",
-        [
-            {"pin_a": 17, "pin_b": 27, "pin_sw": 22, "device_id": "encoder_1"},
-            {"pin_a": 23, "pin_b": 24, "pin_sw": 25, "device_id": "encoder_2"},
-        ],
-    )
+    encoders_cfg: list[dict[str, int | str]]
+    if args.pin_a and args.pin_b and args.pin_sw and args.device_id:
+        counts = {len(args.pin_a), len(args.pin_b), len(args.pin_sw), len(args.device_id)}
+        if len(counts) != 1:
+            raise SystemExit("Pin and device-id arguments must be provided in equal numbers")
+        encoders_cfg = [
+            {
+                "pin_a": pa,
+                "pin_b": pb,
+                "pin_sw": psw,
+                "device_id": did,
+            }
+            for pa, pb, psw, did in zip(
+                args.pin_a, args.pin_b, args.pin_sw, args.device_id
+            )
+        ]
+    else:
+        encoders_cfg = config.get("encoders", [])
+
+    if not encoders_cfg:
+        raise SystemExit("No encoder configuration provided")
 
     factory = EncoderFactory(api_host)
     factory.spawn(encoders_cfg)
