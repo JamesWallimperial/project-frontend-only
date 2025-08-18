@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import time
-import subprocess
+import requests
 import RPi.GPIO as GPIO
 
 # BCM pins (adjust if different)
@@ -8,16 +8,16 @@ PIN_A = 17   # Encoder A (CLK)
 PIN_B = 27   # Encoder B (DT)
 PIN_SW = 22  # Push button (SW)
 
-# Absolute paths for Tapo toggle
-VENV_PY = "/home/jwall/project-root/tapoenv/bin/python3"
-TOGGLE_SCRIPT = "/home/jwall/project-root/src/devices/tapo/tapo_toggle.py"
+# API endpoint to notify of button presses
+API_URL = "http://localhost:8000/events/button"
 
-def run_toggle():
+
+def send_button_event():
+    """Notify the API that the button was pressed."""
     try:
-        out = subprocess.check_output([VENV_PY, TOGGLE_SCRIPT], text=True, timeout=10)
-        print(out.strip())  # Prints "Tapo: toggled ON/OFF"
+        requests.post(API_URL, timeout=2)
     except Exception as e:
-        print(f"Toggle error: {e}")
+        print(f"Button event error: {e}")
 
 def main():
     GPIO.setmode(GPIO.BCM)
@@ -44,8 +44,8 @@ def main():
             # Poll for button press (toggle on press)
             current_state_sw = GPIO.input(PIN_SW)
             if last_state_sw == GPIO.HIGH and current_state_sw == GPIO.LOW:
-                print("BUTTON: PRESS - Toggling Tapo...")
-                run_toggle()
+                print("BUTTON: PRESS - notifying API...")
+                send_button_event()
             elif last_state_sw == GPIO.LOW and current_state_sw == GPIO.HIGH:
                 print("BUTTON: RELEASE")
             last_state_sw = current_state_sw
