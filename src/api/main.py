@@ -8,6 +8,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from devices.gpio.leds import turn_off, turn_on
+
 
 app = FastAPI()
 
@@ -29,6 +31,12 @@ class Event(BaseModel):
     type: str
     device: str
     payload: Any
+
+
+class LEDState(BaseModel):
+    """Desired state of an LED."""
+
+    on: bool
 
 
 @app.websocket("/events")
@@ -58,3 +66,13 @@ async def emit_event(event: Event) -> dict[str, Any]:
             if ws in connected:
                 connected.remove(ws)
     return payload
+
+
+@app.post("/devices/led/{pin}")
+async def set_led(pin: int, state: LEDState) -> dict[str, Any]:
+    """Switch an LED on or off."""
+    if state.on:
+        turn_on(pin)
+    else:
+        turn_off(pin)
+    return {"pin": pin, "on": state.on}
