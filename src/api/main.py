@@ -8,7 +8,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from devices.gpio.leds import turn_off, turn_on
+from src.devices.gpio.leds import turn_off, turn_on
 
 
 app = FastAPI()
