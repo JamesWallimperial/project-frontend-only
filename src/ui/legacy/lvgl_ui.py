@@ -1,13 +1,10 @@
-import sys
-sys.path.append('/home/jwall/project-root/src')  # For importing backend modules
-
 import lvgl as lv
 import display_driver  # From LVGL bindings for unix framebuffer
 
 # Import example backend functions (adjust based on your actual modules)
-from devices.tapo.tapo_toggle import toggle_tapo_device  # E.g., for Tapo plug control
-from voice.intent_router import route_intent  # E.g., for voice command handling
-from common.config import load_config  # Load any needed config
+from src.devices.tapo.tapo_toggle import toggle_tapo_device  # E.g., for Tapo plug control
+from src.voice.intent_router import route_intent  # E.g., for voice command handling
+from src.common.config import load_config  # Load any needed config
 
 # Basic init
 lv.init()
