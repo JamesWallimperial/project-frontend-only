@@ -30,15 +30,15 @@ export default function Startup({ onStart }: Props) {
             }}
           />
           <div>
-            <div className={styles.title}>NetDash</div>
-            <div className={styles.subtitle}>privacy-first smart hub</div>
+            <div className={styles.title}>ECLIPSE</div>
+            <div className={styles.subtitle}>Privacy-first smart hub</div>
           </div>
           <button
             className={styles.primaryBtn}
             onClick={handleStart}
             disabled={loading}
           >
-            {loading ? "Starting…" : "Start"}
+            {loading ? "Starting…" : "Click button to start"}
           </button>
         </div>
       </div>

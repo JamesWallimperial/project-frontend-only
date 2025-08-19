@@ -40,8 +40,7 @@ export default function App() {
   useEffect(() => {
     const host =
       import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
-    const port =
-      import.meta.env.VITE_API_PORT || window.location.port || "8000";
+    const port =import.meta.env.VITE_API_PORT ?? "8000";
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${protocol}://${host}:${port}/events`);
 
@@ -49,6 +48,8 @@ export default function App() {
       try {
         const { type, device, payload } = JSON.parse(event.data);
         setLastDevice(device);
+	
+	// === STEP 3: device selection ===
           if (stepRef.current === 3) {
             if (type === "rotate" && clientsRef.current.length > 0) {
               if (payload === "cw") {
@@ -103,6 +104,10 @@ export default function App() {
                 );
             }
           }
+        } else if (stepRef.current <= 2) {
+          if (type === "button" && payload === "press") {
+            setStep((prev) => prev + 1);
+          }
         } else {
           if (type === "button" && payload === "press") {
             setStep((prev) => prev + 1);
@@ -136,6 +141,7 @@ export default function App() {
             setSelectedIndex(0);
           })
           .catch((err) => console.error("Failed to load clients", err));
+	// === STEP 4: category selection ===
       } else if (step === 4) {
         setSelectedIndex(0);
       }
