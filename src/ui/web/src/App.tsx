@@ -4,6 +4,7 @@ import AccessPoint from "./setup/AccessPoint";
 import HomeAssistant from "./setup/HomeAssistant";
 import DeviceSelection from "./setup/DeviceSelection";
 import CategorySelection from "./setup/CategorySelection";
+import ExposureSelection, { SensitivityOption } from "./setup/ExposureSelection";
 
 export default function App() {
   const [step, setStep] = useState(0);
@@ -13,11 +14,19 @@ export default function App() {
     mac: string;
     hostname: string;
     signal?: number | null;
+    category?: string;
+    sensitivity?: "high" | "medium" | "low";
   }
 
   const [clients, setClients] = useState<WiFiClient[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+
+  const sensitivityOptions: SensitivityOption[] = [
+    { label: "High Sensitivity",   value: "high",   color: "red" },
+    { label: "Medium Sensitivity", value: "medium", color: "yellow" },
+    { label: "Low Sensitivity",    value: "low",    color: "green" },
+  ];
 
   const stepRef = useRef(step);
   const clientsRef = useRef(clients);
@@ -102,25 +111,54 @@ export default function App() {
             const category = categories[selectedRef.current];
             const deviceName = selectedDeviceRef.current;
             if (deviceName) {
-              const host =
-                import.meta.env.VITE_API_HOST ||
-                window.location.hostname ||
-                "localhost";
-              const port =
-                import.meta.env.VITE_API_PORT || window.location.port || "8000";
-              const protocol =
-                window.location.protocol === "https:" ? "https" : "http";
-              fetch(
-                `${protocol}://${host}:${port}/devices/${deviceName}/category`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ category }),
-                }
-              )
-                .then(() => setStep((prev) => prev + 1))
+              const base = getApiBaseUrl();
+              fetch(`${base}/devices/${deviceName}/category`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ category }),
+              })
+                .then(() => {
+                  // optimistic local state update
+                  setClients(prev =>
+                    prev.map(c => c.mac === deviceName ? { ...c, category } : c)
+                  );
+                  setStep((prev) => prev + 1);
+                })
                 .catch((err) =>
                   console.error("Failed to persist category", err)
+                );
+            }
+          }
+
+        } else if (stepRef.current === 5) {
+          // === STEP 5: exposure/sensitivity selection ===
+          if (type === "rotate" && sensitivityOptions.length > 0) {
+            if (payload === "cw") {
+              setSelectedIndex((prev) => (prev + 1) % sensitivityOptions.length);
+            } else if (payload === "ccw") {
+              setSelectedIndex(
+                (prev) => (prev - 1 + sensitivityOptions.length) % sensitivityOptions.length
+              );
+            }
+          } else if (type === "button" && payload === "press") {
+            const deviceName = selectedDeviceRef.current;
+            const chosen = sensitivityOptions[selectedRef.current]?.value; // "high" | "medium" | "low"
+            if (deviceName && chosen) {
+              const base = getApiBaseUrl();
+              fetch(`${base}/devices/${deviceName}/sensitivity`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sensitivity: chosen }),
+              })
+                .then(() => {
+                  // optimistic local state update
+                  setClients(prev =>
+                    prev.map(c => c.mac === deviceName ? { ...c, sensitivity: chosen } : c)
+                  );
+                  setStep((prev) => prev + 1);
+                })
+                .catch((err) =>
+                  console.error("Failed to persist sensitivity", err)
                 );
             }
           }
@@ -150,8 +188,9 @@ export default function App() {
   useEffect(() => {
       if (step === 3) {
         const base = getApiBaseUrl();
-        // You can switch to '/wifi/clients_v2' if you prefer the wrapped shape
-        fetch(`${base}/wifi/clients`, { cache: "no-store" })
+        // If you added the enriched endpoint, use it so saved category/sensitivity appear automatically:
+        // (If this 404s, switch back to `/wifi/clients`.)
+        fetch(`${base}/wifi/clients_with_meta`, { cache: "no-store" })
           .then(async (res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
@@ -162,6 +201,8 @@ export default function App() {
           .catch((err) => console.error("Failed to load clients", err));
 	// === STEP 4: category selection ===
       } else if (step === 4) {
+        setSelectedIndex(0);
+      } else if (step === 5) {
         setSelectedIndex(0);
       }
   }, [step]);
@@ -187,6 +228,14 @@ export default function App() {
       content = (
         <CategorySelection
           categories={categories}
+          selectedIndex={selectedIndex}
+        />
+      );
+      break;
+    case 5:
+      content = (
+        <ExposureSelection
+          options={sensitivityOptions}
           selectedIndex={selectedIndex}
         />
       );

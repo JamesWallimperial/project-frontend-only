@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 import logging
 from pathlib import Path
 import subprocess
+import json, os, tempfile
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +19,8 @@ from src.api.clients import list_clients
 app = FastAPI()
 log = logging.getLogger("api")
 
-# Allow cross-origin requests so the web UI can connect during development.
+""" JSON store for per device metadata"""
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,7 +50,61 @@ class MACAddress(BaseModel):
     """Identifier for a Wi-Fi client."""
 
     mac: str
+    
+class Sensitivity(BaseModel):
+    """Data sensitivity / exposure level for a device."""
+    sensitivity: Literal["high", "medium", "low"]
 
+class Category(BaseModel):
+    """Device category label chosen by the user."""
+    category: str
+
+# ---- simple JSON store for per-device metadata ----
+def _store_path() -> Path:
+    default = Path(__file__).resolve().parents[2] / "data" / "devices.json"
+    return Path(os.environ.get("DEVICE_STORE", str(default)))
+
+def _load_store() -> dict[str, dict[str, Any]]:
+    p = _store_path()
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return {}
+
+def _atomic_write(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=path.parent) as tmp:
+        json.dump(payload, tmp, indent=2, sort_keys=True)
+        tmp.flush()
+        os.fsync(tmp.fileno())
+        tmp_name = tmp.name
+    os.replace(tmp_name, path)
+
+def _set_device_attrs(mac: str, **attrs) -> dict[str, Any]:
+    mac = mac.lower()
+    store = _load_store()
+    record = store.get(mac, {})
+    record.update(attrs)
+    store[mac] = record
+    _atomic_write(_store_path(), store)
+    return record
+
+def _get_device(mac: str) -> dict[str, Any] | None:
+    return _load_store().get(mac.lower())
+
+def _get_all_devices() -> dict[str, dict[str, Any]]:
+    return _load_store()
+
+def _enrich_clients(clients: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    store = _get_all_devices()
+    enriched = []
+    for c in clients:
+        meta = store.get(c["mac"].lower(), {})
+        enriched.append({**c, **{k: v for k, v in meta.items() if k in ("category", "sensitivity")}})
+    return enriched
+# ---- end store helpers ----
 
 @app.websocket("/events")
 async def events(ws: WebSocket) -> None:
@@ -142,3 +198,33 @@ async def wifi_unblock(client: MACAddress) -> dict[str, Any]:
 
     subprocess.run([_wanctl(), "unblock", client.mac], check=False)
     return {"mac": client.mac}
+
+@app.post("/devices/{mac}/category")
+async def set_category(mac: str, payload: Category) -> dict[str, Any]:
+    log.info("HTTP POST /devices/%s/category value=%s", mac, payload.category)
+    record = _set_device_attrs(mac, category=payload.category)
+    return {"mac": mac, **record}
+
+@app.post("/devices/{mac}/sensitivity")
+async def set_sensitivity(mac: str, payload: Sensitivity) -> dict[str, Any]:
+    log.info("HTTP POST /devices/%s/sensitivity value=%s", mac, payload.sensitivity)
+    record = _set_device_attrs(mac, sensitivity=payload.sensitivity)
+    return {"mac": mac, **record}
+    
+    
+@app.get("/devices/{mac}")
+async def get_device(mac: str) -> dict[str, Any]:
+    record = _get_device(mac) or {}
+    return {"mac": mac, **record}
+    
+@app.get("/devices")
+async def get_devices() -> dict[str, dict[str, Any]]:
+    return _get_all_devices()
+    
+    
+@app.get("/wifi/clients_with_meta")
+async def wifi_clients_with_meta(iface: str = "wlan0") -> dict[str, Any]:
+    items = list_clients(iface)
+    merged = _enrich_clients(items)
+    log.info("HTTP /wifi/clients_with_meta iface=%s returned=%d", iface, len(merged))
+    return {"clients": merged}
