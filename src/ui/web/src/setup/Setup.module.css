@@ -109,3 +109,27 @@
     display: flex;
     gap: 1rem;
   }
+  
+  
+.colorDot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08); 
+}
+.deviceItemSelected .colorDot {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+
+.deviceItemEmpty {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-style: italic;
+}
+
