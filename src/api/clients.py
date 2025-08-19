@@ -54,8 +54,12 @@ def _find_leases_path(iface: str) -> Path | None:
         Path("/var/lib/misc/dnsmasq.leases"),  # non-NM dnsmasq default
     ]
     for p in candidates:
-        if p.is_file():
-            return p
+         try:
+            if p.is_file():
+                return p
+         except PermissionError as e:
+            log.warning("leases path check failed path=%s: %s", p, e)
+            continue
     return None
 
 def _leases_maps(iface: str) -> Tuple[Dict[str, str], Dict[str, str], Path | None]:
@@ -67,7 +71,13 @@ def _leases_maps(iface: str) -> Tuple[Dict[str, str], Dict[str, str], Path | Non
         log.warning("leases file not found for iface=%s", iface)
         return ip_by_mac, host_by_mac, None
 
-    for raw in path.read_text().splitlines():
+    try:
+        lines = path.read_text().splitlines()
+    except PermissionError as e:
+        log.warning("leases file unreadable path=%s: %s", path, e)
+        return ip_by_mac, host_by_mac, path
+
+    for raw in lines:
         parts = raw.split()
         if len(parts) < 3:
             continue

@@ -8,35 +8,12 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
-</html>
-
-        </div>
-
-        <button class="primary-btn" id="startBtn">Start</button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <script>
-
-    document.getElementById('startBtn').addEventListener('click', async () => {
-
-      // placeholder health check; ignore errors for now
-
-      try { await fetch('/devices', { method: 'GET' }); } catch(e) {}
-
-      // later: window.location.href = '/app';
-
-      alert('Starting… (hook up navigation next)');
-
-    });
 
   </script>
 
 </body>
 
 </html>
+
+
 

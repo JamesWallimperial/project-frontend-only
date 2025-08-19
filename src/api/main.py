@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import logging
 from pathlib import Path
 import subprocess
 
@@ -15,6 +16,7 @@ from src.api.clients import list_clients
 
 
 app = FastAPI()
+log = logging.getLogger("api")
 
 # Allow cross-origin requests so the web UI can connect during development.
 app.add_middleware(
@@ -88,14 +90,33 @@ async def set_led(pin: int, state: LEDState) -> dict[str, Any]:
 
 
 @app.get("/wifi/clients")
-async def wifi_clients() -> list[dict[str, Any]]:
-    """Return connected Wi-Fi clients.
+async def wifi_clients(iface: str = "wlan0") -> list[dict[str, Any]]:
+    """Return connected Wi-Fi clients (bare array for backward compatibility)."""
+    items = list_clients(iface)
+    log.info("HTTP /wifi/clients iface=%s returned=%d", iface, len(items))
+    return items
 
-    Requires elevated privileges because ``iw`` needs root.
-    """
+@app.get("/wifi/clients_v2")
+async def wifi_clients_v2(iface: str = "wlan0") -> dict[str, Any]:
+    """Return clients wrapped as {'clients': [...]} for UIs that expect an object."""
+    items = list_clients(iface)
+    log.info("HTTP /wifi/clients_v2 iface=%s returned=%d", iface, len(items))
+    return {"clients": items}
 
-    return list_clients()
+def _normalize(c: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "macAddress": c.get("mac"),
+        "ipAddress": c.get("ip"),
+        "name": c.get("hostname"),
+        "rssi": c.get("signal"),
+    }
 
+@app.get("/wifi/clients_ui")
+async def wifi_clients_ui(iface: str = "wlan0") -> dict[str, Any]:
+    """Return clients mapped to UI-friendly keys."""
+    items = [ _normalize(c) for c in list_clients(iface) ]
+    log.info("HTTP /wifi/clients_ui iface=%s returned=%d", iface, len(items))
+    return {"clients": items}
 
 def _wanctl() -> str:
     return str(Path(__file__).resolve().parents[2] / "scripts" / "wanctl")

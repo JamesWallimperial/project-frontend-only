@@ -37,13 +37,33 @@ export default function App() {
     selectedDeviceRef.current = selectedDevice;
   }, [selectedDevice]);
 
-  useEffect(() => {
-    const host =
-      import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
-    const port =import.meta.env.VITE_API_PORT ?? "8000";
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${protocol}://${host}:${port}/events`);
+  // ----- API base URL (prefer env; fallback to port 8000 on current host) -----
+  function getApiBaseUrl(): string {
+    // Primary: Vite-style single var
+    const direct = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
+    if (direct) return direct.replace(/\/+$/, "");
 
+    // Back-compat: separate host/port envs if you already use them
+    const host = (import.meta as any)?.env?.VITE_API_HOST || window.location.hostname || "localhost";
+    const port = (import.meta as any)?.env?.VITE_API_PORT || "8000"; // <— default to 8000, not UI port
+    const proto = "http:"; // API usually on HTTP locally; change to https if you terminate TLS
+    return `${proto}//${host}:${port}`;
+  }
+
+  // Accept either [] or { clients: [...] }
+  function normalizeClients(raw: unknown) {
+    if (Array.isArray(raw)) return raw as WiFiClient[];
+    if (raw && typeof raw === "object" && Array.isArray((raw as any).clients)) {
+      return (raw as any).clients as WiFiClient[];
+    }
+    return [] as WiFiClient[];
+  }
+
+  useEffect(() => {
+    const base = getApiBaseUrl();              // e.g., "http://raspberrypi.local:8000"
+    const { protocol, host } = new URL(base);  // "http:", "raspberrypi.local:8000"
+    const wsProto = protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${wsProto}//${host}/events`);
     ws.onmessage = (event) => {
       try {
         const { type, device, payload } = JSON.parse(event.data);
@@ -129,15 +149,14 @@ export default function App() {
 
   useEffect(() => {
       if (step === 3) {
-        const host =
-          import.meta.env.VITE_API_HOST || window.location.hostname || "localhost";
-        const port =
-          import.meta.env.VITE_API_PORT || window.location.port || "8000";
-        const protocol = window.location.protocol === "https:" ? "https" : "http";
-        fetch(`${protocol}://${host}:${port}/wifi/clients`)
-          .then((res) => res.json())
-          .then((data: WiFiClient[]) => {
-            setClients(data);
+        const base = getApiBaseUrl();
+        // You can switch to '/wifi/clients_v2' if you prefer the wrapped shape
+        fetch(`${base}/wifi/clients`, { cache: "no-store" })
+          .then(async (res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            const list = normalizeClients(json);
+            setClients(list);
             setSelectedIndex(0);
           })
           .catch((err) => console.error("Failed to load clients", err));
@@ -147,7 +166,7 @@ export default function App() {
       }
   }, [step]);
 
-  const categories = ["Light", "Outlet", "Switch", "Sensor"];
+  const categories = ["Smart Speaker", "Security & Monitoring", "Entertainment", "Personal Devices", "Appliance or Light", "Other/Unknown"];
   let content;
   switch (step) {
     case 0:
@@ -179,7 +198,7 @@ export default function App() {
   return (
     <>
       {content}
-      {lastDevice && (
+	{lastDevice && (
         <div className="device-indicator">Input from {lastDevice}</div>
       )}
     </>
