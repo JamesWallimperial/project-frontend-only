@@ -1,26 +1,22 @@
 {
   "30:68:93:7c:6f:74": {
-    "category": "Other/Unknown",
-    "sensitivity": "low"
+    "category": "Smart Speaker",
+    "sensitivity": "high"
   },
   "66:4c:61:15:43:8f": {
-    "category": "Personal Devices",
+    "category": "Smart Speaker",
     "sensitivity": "high"
   },
   "7c:f1:7e:21:aa:b0": {
     "category": "Appliance or Light",
-    "sensitivity": "low"
+    "sensitivity": "high"
   },
   "98:ba:5f:c6:ff:2b": {
-    "category": "Appliance or Light",
-    "sensitivity": "low"
-  },
-  "a8:ab:b5:22:a4:7f": {
-    "category": "Personal Devices",
-    "sensitivity": "low"
+    "category": "Smart Speaker",
+    "sensitivity": "high"
   },
   "dc:62:79:8c:e1:52": {
-    "category": "Other/Unknown",
-    "sensitivity": "high"
+    "category": "Appliance or Light",
+    "sensitivity": "low"
   }
 }

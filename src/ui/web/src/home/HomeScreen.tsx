@@ -3,11 +3,12 @@ import styles from "../setup/Setup.module.css";
 interface Props {
   total: number;
   configured: number;
-  onReview?: () => void;   // go back to configure more (if any remain)
-  onRestart?: () => void;  // optional: restart the setup flow
+  menu: string[];           // e.g., ["Dashboard", "Restart setup"]
+  selectedIndex: number;    // knob highlight
+  onActivate: (index: number) => void; // press action
 }
 
-export default function HomeScreen({ total, configured, onReview, onRestart }: Props) {
+export default function HomeScreen({ total, configured, menu, selectedIndex, onActivate }: Props) {
   const remaining = Math.max(total - configured, 0);
 
   return (
@@ -17,8 +18,7 @@ export default function HomeScreen({ total, configured, onReview, onRestart }: P
           <div>
             <div className={styles.title}>Setup complete</div>
             <div className={styles.subtitle}>
-              {configured} of {total} devices configured
-              {remaining > 0 ? ` • ${remaining} remaining` : ""}
+              {configured} of {total} devices configured{remaining ? ` • ${remaining} remaining` : ""}
             </div>
           </div>
 
@@ -33,21 +33,21 @@ export default function HomeScreen({ total, configured, onReview, onRestart }: P
             </div>
           </div>
 
-          <div className={styles.homeActions}>
-            {remaining > 0 && (
-              <button className={styles.primaryBtn} onClick={onReview}>
-                Configure remaining
-              </button>
-            )}
-            <button
-              className={styles.primaryBtn}
-              onClick={onRestart}
-              aria-label="Restart setup"
-              title="Restart setup"
-            >
-              Restart setup
-            </button>
-          </div>
+          <ul className={styles.homeMenu} role="listbox"
+              aria-activedescendant={`home-option-${selectedIndex}`}>
+            {menu.map((label, idx) => (
+              <li
+                id={`home-option-${idx}`}
+                role="option"
+                aria-selected={idx === selectedIndex}
+                key={label}
+                className={`${styles.homeMenuItem} ${idx === selectedIndex ? styles.homeMenuItemSelected : ""}`}
+                onClick={() => onActivate(idx)}
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>

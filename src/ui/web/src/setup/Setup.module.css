@@ -169,4 +169,111 @@
   margin-top: 0.5rem;
   flex-wrap: wrap;
 }
+/* --- Step 6 menu --- */
+.homeMenu {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(60vmin, 420px);
+  margin-inline: auto;
+}
+.homeMenuItem {
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.homeMenuItemSelected {
+  background: var(--accent);
+  color: #052014;
+}
 
+/* --- Dashboard bubbles --- */
+.dashWrap {
+  position: relative;
+  width: min(70vmin, 520px);
+  height: min(70vmin, 520px);
+  margin-top: 0.5rem;
+}
+.bubble {
+  position: absolute;
+  width: 6rem;                 
+  height: 6rem;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+.bubbleCenter {
+  width: 10rem;                  
+  height: 10rem;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 201, 165, 0.55);
+  border: 1px solid rgba(20, 201, 165, 0.65);
+}
+
+.bubbleOnline {
+  background: rgba(96, 165, 250, 0.32);     /* blue  (#60a5fa) */
+  border-color: rgba(96, 165, 250, 0.60);
+}
+.bubbleOnline:hover,
+.bubbleOnline:focus-visible {
+  background: rgba(96, 165, 250, 0.40);
+  border-color: rgba(96, 165, 250, 0.75);
+  outline: none;
+}
+
+.bubbleBlocked {
+  background: rgba(239, 68, 68, 0.32);      /* red   (#ef4444) */
+  border-color: rgba(239, 68, 68, 0.60);
+}
+.bubbleBlocked:hover,
+.bubbleBlocked:focus-visible {
+  background: rgba(239, 68, 68, 0.40);
+  border-color: rgba(239, 68, 68, 0.75);
+  outline: none;
+}
+
+.bubbleCloud {
+  background: rgba(167, 139, 250, 0.32);    /* purple (#a78bfa) */
+  border-color: rgba(167, 139, 250, 0.60);
+}
+.bubbleCloud:hover,
+.bubbleCloud:focus-visible {
+  background: rgba(167, 139, 250, 0.40);
+  border-color: rgba(167, 139, 250, 0.75);
+  outline: none;
+}
+
+.bubbleAlerts {
+  background: rgba(245, 158, 11, 0.32);     /* amber (#f59e0b) */
+  border-color: rgba(245, 158, 11, 0.60);
+}
+.bubbleAlerts:hover,
+.bubbleAlerts:focus-visible {
+  background: rgba(245, 158, 11, 0.40);
+  border-color: rgba(245, 158, 11, 0.75);
+  outline: none;
+}
+
+.bubble:hover,
+.bubble:focus-visible {
+  background: rgba(255,255,255,0.40);
+  border-color: rgba(255,255,255,0.38);
+  outline: none;
+}
+
+
+.bubbleTop    { left: 50%; top: -10%;   transform: translateX(-50%); }
+.bubbleRight  { top: 50%;  right: -10%; transform: translateY(-50%); }
+.bubbleBottom { left: 50%; bottom: -10%; transform: translateX(-50%); }
+.bubbleLeft   { top: 50%;  left: -10%;  transform: translateY(-50%); }
