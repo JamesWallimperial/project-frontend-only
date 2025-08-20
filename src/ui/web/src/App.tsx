@@ -6,7 +6,7 @@ import DeviceSelection from "./setup/DeviceSelection";
 import CategorySelection from "./setup/CategorySelection";
 import ExposureSelection, { SensitivityOption } from "./setup/ExposureSelection";
 import HomeScreen from "./home/HomeScreen";
-
+import DashboardScreen from "./home/DashboardScreen";
 
 export default function App() {
   const [step, setStep] = useState(0);
@@ -195,13 +195,22 @@ export default function App() {
             }
           }
           } else if (stepRef.current === 6) {
-    // Home screen: on button press, allow quick revisit of configuration
-            if (type === "button" && payload === "press") {
-              const remaining = clientsRef.current.filter(c => !c.category || !c.sensitivity);
-              if (remaining.length > 0) {
+            // Two-menu navigation by knob: 0 = Dashboard, 1 = Restart setup
+            if (type === "rotate") {
+              const menuLen = 2; // ["Dashboard","Restart setup"]
+              if (payload === "cw") {
+                setSelectedIndex(prev => (prev + 1) % menuLen);
+              } else if (payload === "ccw") {
+                setSelectedIndex(prev => (prev - 1 + menuLen) % menuLen);
+              }
+            } else if (type === "button" && payload === "press") {
+              if (selectedRef.current === 0) {
+                setStep(7); // go to Dashboard
+              } else {
+                // Restart setup
                 setSelectedDevice(null);
                 setSelectedIndex(0);
-                setStep(3);
+                setStep(0);
               }
             }
         // Steps 0–2: simple advance on press
@@ -260,6 +269,9 @@ export default function App() {
     } else if (step === 5) {
       setSelectedIndex(0);
     }
+      else if (step === 6) {
+      setSelectedIndex(0);
+    }
   }, [step]);
 
   const categories = [
@@ -306,31 +318,49 @@ export default function App() {
         />
       );
       break;
-    case 6:
+    case 6: {
+      const configured = clients.filter(c => c.category && c.sensitivity).length;
+      const menu = ["Dashboard", "Restart setup"];
       content = (
         <HomeScreen
           total={clients.length}
-          configured={clients.filter(c => c.category && c.sensitivity).length}
-          onReview={() => {
-            const remaining = clients.filter(c => !c.category || !c.sensitivity);
-            if (remaining.length > 0) {
-              setSelectedDevice(null);
-              setSelectedIndex(0);
-              setStep(3);
-            }
-          }}
-          onRestart={() => {
-          // Hard reset to the beginning of the wizard
-            setSelectedDevice(null);
-            setSelectedIndex(0);
-            setStep(0);
+          configured={configured}
+          menu={menu}
+          selectedIndex={selectedIndex}
+          onActivate={(idx) => {
+            if (idx === 0) setStep(7);
+            else { setSelectedDevice(null); setSelectedIndex(0); setStep(0); }
           }}
         />
       );
       break;
+    }
+    case 7: {
+      // Basic counts (adjust as you add real data)
+      const online = clients.length;
+      const blocked = 0; // TODO: wire to your /wifi/block state if available
+      const cloud = 0;   // TODO: compute once you track "cloud-connected"
+      const alerts = 0;  // TODO: wire to alerts source
+      content = (
+        <DashboardScreen
+          online={online}
+          blocked={blocked}
+          cloud={cloud}
+          alerts={alerts}
+          onPrivacy={() => {/* TODO: navigate or open modal */}}
+          onOnline={() => {/* TODO */}}
+          onBlocked={() => {/* TODO */}}
+          onCloud={() => {/* TODO */}}
+          onAlerts={() => {/* TODO */}}
+        />
+      );
+      break;
+    }
+
     default:
       content = null;
-  }
+      break;
+  } 
 
   return (
     <>
@@ -341,3 +371,4 @@ export default function App() {
     </>
   );
 }
+ 
