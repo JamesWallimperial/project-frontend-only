@@ -5,10 +5,13 @@ import HomeAssistant from "./setup/HomeAssistant";
 import DeviceSelection from "./setup/DeviceSelection";
 import CategorySelection from "./setup/CategorySelection";
 import ExposureSelection, { SensitivityOption } from "./setup/ExposureSelection";
+import HomeScreen from "./home/HomeScreen";
+
 
 export default function App() {
   const [step, setStep] = useState(0);
   const [lastDevice, setLastDevice] = useState<string | null>(null);
+
   interface WiFiClient {
     ip: string;
     mac: string;
@@ -22,10 +25,15 @@ export default function App() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
+  // Show only devices that still need category or sensitivity
+  const unconfiguredClients = clients.filter(
+    (c) => !c.category || !c.sensitivity
+  );
+
   const sensitivityOptions: SensitivityOption[] = [
-    { label: "High Sensitivity",   value: "high",   color: "red" },
+    { label: "High Sensitivity", value: "high", color: "red" },
     { label: "Medium Sensitivity", value: "medium", color: "yellow" },
-    { label: "Low Sensitivity",    value: "low",    color: "green" },
+    { label: "Low Sensitivity", value: "low", color: "green" },
   ];
 
   const stepRef = useRef(step);
@@ -48,14 +56,16 @@ export default function App() {
 
   // ----- API base URL (prefer env; fallback to port 8000 on current host) -----
   function getApiBaseUrl(): string {
-    // Primary: Vite-style single var
-    const direct = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
+    const direct = (import.meta as any)?.env?.VITE_API_BASE_URL as
+      | string
+      | undefined;
     if (direct) return direct.replace(/\/+$/, "");
-
-    // Back-compat: separate host/port envs if you already use them
-    const host = (import.meta as any)?.env?.VITE_API_HOST || window.location.hostname || "localhost";
-    const port = (import.meta as any)?.env?.VITE_API_PORT || "8000"; // <— default to 8000, not UI port
-    const proto = "http:"; // API usually on HTTP locally; change to https if you terminate TLS
+    const host =
+      (import.meta as any)?.env?.VITE_API_HOST ||
+      window.location.hostname ||
+      "localhost";
+    const port = (import.meta as any)?.env?.VITE_API_PORT || "8000";
+    const proto = "http:";
     return `${proto}//${host}:${port}`;
   }
 
@@ -68,37 +78,41 @@ export default function App() {
     return [] as WiFiClient[];
   }
 
+  // WebSocket input handling
   useEffect(() => {
-    const base = getApiBaseUrl();              // e.g., "http://raspberrypi.local:8000"
-    const { protocol, host } = new URL(base);  // "http:", "raspberrypi.local:8000"
+    const base = getApiBaseUrl();
+    const { protocol, host } = new URL(base);
     const wsProto = protocol === "https:" ? "wss:" : "ws:";
     const ws = new WebSocket(`${wsProto}//${host}/events`);
+
     ws.onmessage = (event) => {
       try {
         const { type, device, payload } = JSON.parse(event.data);
         setLastDevice(device);
-	
-	// === STEP 3: device selection ===
-          if (stepRef.current === 3) {
-            if (type === "rotate" && clientsRef.current.length > 0) {
-              if (payload === "cw") {
-                setSelectedIndex(
-                  (prev) => (prev + 1) % clientsRef.current.length
-                );
-              } else if (payload === "ccw") {
-                setSelectedIndex(
-                  (prev) =>
-                    (prev - 1 + clientsRef.current.length) %
-                    clientsRef.current.length
-                );
-              }
-            } else if (type === "button" && payload === "press") {
-              const selected = clientsRef.current[selectedRef.current];
-              setSelectedDevice(selected?.mac ?? null);
-              setSelectedIndex(0);
-              setStep((prev) => prev + 1);
+
+        // === STEP 3: device selection (only unconfigured clients) ===
+        if (stepRef.current === 3) {
+          const unconfigured = clientsRef.current.filter(
+            (c) => !c.category || !c.sensitivity
+          );
+
+          if (type === "rotate" && unconfigured.length > 0) {
+            if (payload === "cw") {
+              setSelectedIndex((prev) => (prev + 1) % unconfigured.length);
+            } else if (payload === "ccw") {
+              setSelectedIndex(
+                (prev) => (prev - 1 + unconfigured.length) % unconfigured.length
+              );
             }
-          } else if (stepRef.current === 4) {
+          } else if (type === "button" && payload === "press") {
+            const selected = unconfigured[selectedRef.current];
+            setSelectedDevice(selected?.mac ?? null);
+            setSelectedIndex(0);
+            setStep((prev) => prev + 1); // -> step 4
+          }
+
+        // === STEP 4: category selection ===
+        } else if (stepRef.current === 4) {
           if (type === "rotate" && categories.length > 0) {
             if (payload === "cw") {
               setSelectedIndex((prev) => (prev + 1) % categories.length);
@@ -111,18 +125,20 @@ export default function App() {
             const category = categories[selectedRef.current];
             const deviceName = selectedDeviceRef.current;
             if (deviceName) {
-              const base = getApiBaseUrl();
-              fetch(`${base}/devices/${deviceName}/category`, {
+              const baseUrl = getApiBaseUrl();
+              fetch(`${baseUrl}/devices/${deviceName}/category`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ category }),
               })
                 .then(() => {
                   // optimistic local state update
-                  setClients(prev =>
-                    prev.map(c => c.mac === deviceName ? { ...c, category } : c)
+                  setClients((prev) =>
+                    prev.map((c) =>
+                      c.mac === deviceName ? { ...c, category } : c
+                    )
                   );
-                  setStep((prev) => prev + 1);
+                  setStep((prev) => prev + 1); // -> step 5
                 })
                 .catch((err) =>
                   console.error("Failed to persist category", err)
@@ -130,51 +146,76 @@ export default function App() {
             }
           }
 
+        // === STEP 5: exposure/sensitivity selection ===
         } else if (stepRef.current === 5) {
-          // === STEP 5: exposure/sensitivity selection ===
           if (type === "rotate" && sensitivityOptions.length > 0) {
             if (payload === "cw") {
               setSelectedIndex((prev) => (prev + 1) % sensitivityOptions.length);
             } else if (payload === "ccw") {
               setSelectedIndex(
-                (prev) => (prev - 1 + sensitivityOptions.length) % sensitivityOptions.length
+                (prev) =>
+                  (prev - 1 + sensitivityOptions.length) %
+                  sensitivityOptions.length
               );
             }
           } else if (type === "button" && payload === "press") {
             const deviceName = selectedDeviceRef.current;
             const chosen = sensitivityOptions[selectedRef.current]?.value; // "high" | "medium" | "low"
             if (deviceName && chosen) {
-              const base = getApiBaseUrl();
-              fetch(`${base}/devices/${deviceName}/sensitivity`, {
+              const baseUrl = getApiBaseUrl();
+              fetch(`${baseUrl}/devices/${deviceName}/sensitivity`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ sensitivity: chosen }),
               })
                 .then(() => {
-                  // optimistic local state update
-                  setClients(prev =>
-                    prev.map(c => c.mac === deviceName ? { ...c, sensitivity: chosen } : c)
-                  );
-                  setStep((prev) => prev + 1);
+                  // optimistic local state update + loop remaining
+                  setClients((prev) => {
+                    const updated = prev.map((c) =>
+                      c.mac === deviceName ? { ...c, sensitivity: chosen } : c
+                    );
+                    const remaining = updated.filter(
+                      (c) => !c.category || !c.sensitivity
+                    );
+                    if (remaining.length > 0) {
+                      // loop back to pick the next device
+                      setSelectedDevice(null);
+                      setSelectedIndex(0);
+                      setStep(3);
+                    } else {
+                      // all devices configured; advance to a "done" step (6) or stay
+                      setStep(6);
+                    }
+                    return updated;
+                  });
                 })
                 .catch((err) =>
                   console.error("Failed to persist sensitivity", err)
                 );
             }
           }
+          } else if (stepRef.current === 6) {
+    // Home screen: on button press, allow quick revisit of configuration
+            if (type === "button" && payload === "press") {
+              const remaining = clientsRef.current.filter(c => !c.category || !c.sensitivity);
+              if (remaining.length > 0) {
+                setSelectedDevice(null);
+                setSelectedIndex(0);
+                setStep(3);
+              }
+            }
+        // Steps 0–2: simple advance on press
         } else if (stepRef.current <= 2) {
           if (type === "button" && payload === "press") {
             setStep((prev) => prev + 1);
           }
         } else {
+          // Fallback navigation (optional)
           if (type === "button" && payload === "press") {
             setStep((prev) => prev + 1);
           } else if (type === "rotate") {
-            if (payload === "cw") {
-              setStep((prev) => prev + 1);
-            } else if (payload === "ccw") {
-              setStep((prev) => Math.max(prev - 1, 0));
-            }
+            if (payload === "cw") setStep((prev) => prev + 1);
+            else if (payload === "ccw") setStep((prev) => Math.max(prev - 1, 0));
           }
         }
       } catch (err) {
@@ -185,29 +226,51 @@ export default function App() {
     return () => ws.close();
   }, []);
 
+  // Step-based effects (fetch & reset selection)
   useEffect(() => {
-      if (step === 3) {
-        const base = getApiBaseUrl();
-        // If you added the enriched endpoint, use it so saved category/sensitivity appear automatically:
-        // (If this 404s, switch back to `/wifi/clients`.)
-        fetch(`${base}/wifi/clients_with_meta`, { cache: "no-store" })
-          .then(async (res) => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
-            const list = normalizeClients(json);
-            setClients(list);
-            setSelectedIndex(0);
-          })
-          .catch((err) => console.error("Failed to load clients", err));
-	// === STEP 4: category selection ===
-      } else if (step === 4) {
-        setSelectedIndex(0);
-      } else if (step === 5) {
-        setSelectedIndex(0);
-      }
+    if (step === 3) {
+      const base = getApiBaseUrl();
+      // Prefer enriched endpoint if present; otherwise clients-only
+      fetch(`${base}/wifi/clients_with_meta`, { cache: "no-store" })
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          const list = normalizeClients(json);
+          setClients(list);
+          setSelectedIndex(0);
+         // If nothing left to configure, go straight to Home (step 6)
+          const remaining = list.filter((c: any) => !c.category || !c.sensitivity);
+          if (remaining.length === 0) setStep(6);
+        })
+        .catch(async () => {
+          // fallback to plain clients
+          const res = await fetch(`${base}/wifi/clients`, {
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          const list = normalizeClients(json);
+          setClients(list);
+          setSelectedIndex(0);
+          const remaining = list.filter((c: any) => !c.category || !c.sensitivity);
+          if (remaining.length === 0) setStep(6);
+        });
+    } else if (step === 4) {
+      setSelectedIndex(0);
+    } else if (step === 5) {
+      setSelectedIndex(0);
+    }
   }, [step]);
 
-  const categories = ["Smart Speaker", "Security & Monitoring", "Entertainment", "Personal Devices", "Appliance or Light", "Other/Unknown"];
+  const categories = [
+    "Smart Speaker",
+    "Security & Monitoring",
+    "Entertainment",
+    "Personal Devices",
+    "Appliance or Light",
+    "Other/Unknown",
+  ];
+
   let content;
   switch (step) {
     case 0:
@@ -220,9 +283,12 @@ export default function App() {
       content = <HomeAssistant onContinue={() => setStep(3)} />;
       break;
     case 3:
-        content = (
-          <DeviceSelection clients={clients} selectedIndex={selectedIndex} />
-        );
+      content = (
+        <DeviceSelection
+          clients={unconfiguredClients}
+          selectedIndex={selectedIndex}
+        />
+      );
       break;
     case 4:
       content = (
@@ -240,6 +306,28 @@ export default function App() {
         />
       );
       break;
+    case 6:
+      content = (
+        <HomeScreen
+          total={clients.length}
+          configured={clients.filter(c => c.category && c.sensitivity).length}
+          onReview={() => {
+            const remaining = clients.filter(c => !c.category || !c.sensitivity);
+            if (remaining.length > 0) {
+              setSelectedDevice(null);
+              setSelectedIndex(0);
+              setStep(3);
+            }
+          }}
+          onRestart={() => {
+          // Hard reset to the beginning of the wizard
+            setSelectedDevice(null);
+            setSelectedIndex(0);
+            setStep(0);
+          }}
+        />
+      );
+      break;
     default:
       content = null;
   }
@@ -247,7 +335,7 @@ export default function App() {
   return (
     <>
       {content}
-	{lastDevice && (
+      {lastDevice && (
         <div className="device-indicator">Input from {lastDevice}</div>
       )}
     </>
