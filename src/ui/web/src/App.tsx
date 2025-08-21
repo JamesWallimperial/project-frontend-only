@@ -24,6 +24,7 @@ export default function App() {
   const [clients, setClients] = useState<WiFiClient[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+  const [exposureLevel, setExposureLevel] = useState<number>(1);
 
   // Show only devices that still need category or sensitivity
   const unconfiguredClients = clients.filter(
@@ -78,6 +79,20 @@ export default function App() {
     return [] as WiFiClient[];
   }
 
+// === exposure: fetch initial level once ===
+  useEffect(() => {
+    const base = getApiBaseUrl();
+    fetch(`${base}/exposure`)
+      .then((r) => (r.ok ? r.json() : { level: 1 }))
+      .then(({ level }) => {
+        if (typeof level === "number") {
+          setExposureLevel(Math.max(1, Math.min(5, level)));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+
   // WebSocket input handling
   useEffect(() => {
     const base = getApiBaseUrl();
@@ -89,6 +104,16 @@ export default function App() {
       try {
         const { type, device, payload } = JSON.parse(event.data);
         setLastDevice(device);
+
+     // --- keep the center bubble in sync with server/LED LEDs ---
+        if (type === "exposure") {
+          const lvl = Number(payload);
+          if (Number.isFinite(lvl)) {
+            setExposureLevel(Math.max(1, Math.min(5, lvl)));
+          }
+          return; // exposure updates don't affect the wizard flow
+        }
+
 
         // === STEP 3: device selection (only unconfigured clients) ===
         if (stepRef.current === 3) {
@@ -213,6 +238,28 @@ export default function App() {
                 setStep(0);
               }
             }
+           } else if (stepRef.current === 7) {
+             // 5 selectable bubbles: 0=center, 1=top, 2=right, 3=bottom, 4=left
+             const total = 5;
+             if (type === "rotate") {
+               if (payload === "cw") {
+                 setSelectedIndex(prev => (prev + 1) % total);
+               } else if (payload === "ccw") {
+                 setSelectedIndex(prev => (prev - 1 + total) % total);
+               }
+             } else if (type === "button" && payload === "press") {
+               // Trigger the same action as clicking the bubble
+               const idx = selectedRef.current;
+               switch (idx) {
+                 case 0: /* Privacy */ break;            // TODO: navigate/open details
+                 case 1: /* Online */ break;             // TODO
+                 case 2: /* Blocked */ break;            // TODO
+                 case 3: /* Cloud */ break;              // TODO
+                 case 4: /* Alerts */ break;             // TODO
+               }
+             }
+
+
         // Steps 0–2: simple advance on press
         } else if (stepRef.current <= 2) {
           if (type === "button" && payload === "press") {
@@ -271,6 +318,9 @@ export default function App() {
     }
       else if (step === 6) {
       setSelectedIndex(0);
+    }
+      else if (step === 7) {
+      setSelectedIndex(0);
     }
   }, [step]);
 
@@ -335,26 +385,32 @@ export default function App() {
       );
       break;
     }
-    case 7: {
-      // Basic counts (adjust as you add real data)
-      const online = clients.length;
-      const blocked = 0; // TODO: wire to your /wifi/block state if available
-      const cloud = 0;   // TODO: compute once you track "cloud-connected"
-      const alerts = 0;  // TODO: wire to alerts source
-      content = (
-        <DashboardScreen
-          online={online}
-          blocked={blocked}
-          cloud={cloud}
+    case 7: {
+      const online = clients.length;
+      const blocked = 0;
+      const cloud = 0;
+      const alerts = 0;
+      content = (
+        <DashboardScreen
+          online={online}
+          blocked={blocked}
+          cloud={cloud}
           alerts={alerts}
-          onPrivacy={() => {/* TODO: navigate or open modal */}}
-          onOnline={() => {/* TODO */}}
-          onBlocked={() => {/* TODO */}}
-          onCloud={() => {/* TODO */}}
-          onAlerts={() => {/* TODO */}}
-        />
-      );
-      break;
+          exposureLevel={exposureLevel}
+          selectedIndex={selectedIndex}
+          onActivate={(idx) => {
+            // Keep click behavior aligned with encoder button
+            switch (idx) {
+              case 0: /* Privacy */ break;
+              case 1: /* Online */ break;
+              case 2: /* Blocked */ break;
+              case 3: /* Cloud */ break;
+              case 4: /* Alerts */ break;
+            }
+          }}
+        />
+      );
+      break;
     }
 
     default:

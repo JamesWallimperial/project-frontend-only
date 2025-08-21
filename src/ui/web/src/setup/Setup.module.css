@@ -277,3 +277,21 @@
 .bubbleRight  { top: 50%;  right: -10%; transform: translateY(-50%); }
 .bubbleBottom { left: 50%; bottom: -10%; transform: translateX(-50%); }
 .bubbleLeft   { top: 50%;  left: -10%;  transform: translateY(-50%); }
+
+
+.bubbleSelected {
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 28px rgba(20, 201, 165, 0.35);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+.bubbleTop.bubbleSelected    { transform: translateX(-50%) scale(1.05); }
+.bubbleRight.bubbleSelected  { transform: translateY(-50%) scale(1.05); }
+.bubbleBottom.bubbleSelected { transform: translateX(-50%) scale(1.05); }
+.bubbleLeft.bubbleSelected   { transform: translateY(-50%) scale(1.05); }
+
+.bubbleCenterL1 { background: rgba(34, 197, 94, 0.35);  border-color: rgba(34, 197, 94, 0.65); }  /* green */
+.bubbleCenterL2 { background: rgba(20, 201, 165, 0.35); border-color: rgba(20, 201, 165, 0.65); } /* teal */
+.bubbleCenterL3 { background: rgba(245, 158, 11, 0.35); border-color: rgba(245, 158, 11, 0.65); } /* amber */
+.bubbleCenterL4 { background: rgba(249, 115, 22, 0.35); border-color: rgba(249, 115, 22, 0.65); } /* orange */
+.bubbleCenterL5 { background: rgba(239, 68, 68, 0.35);  border-color: rgba(239, 68, 68, 0.65); }  /* red */

@@ -58,6 +58,20 @@ class Sensitivity(BaseModel):
 class Category(BaseModel):
     """Device category label chosen by the user."""
     category: str
+    
+class Exposure(BaseModel):
+    # 1..5 cumulative exposure level
+    level: int
+
+EXPOSURE_LED_PINS = [
+    int(os.getenv("EXPOSURE_LED1", "5")),   # LED1 (Green)
+    int(os.getenv("EXPOSURE_LED2", "6")),   # LED2 (Green)
+    int(os.getenv("EXPOSURE_LED3", "12")),  # LED3 (Amber)
+    int(os.getenv("EXPOSURE_LED4", "13")),  # LED4 (Red)
+    int(os.getenv("EXPOSURE_LED5", "26")),  # LED5 (Green)
+]
+
+_current_exposure_level = 1  # default on boot
 
 # ---- simple JSON store for per-device metadata ----
 def _store_path() -> Path:
@@ -104,6 +118,18 @@ def _enrich_clients(clients: list[dict[str, Any]]) -> list[dict[str, Any]]:
         meta = store.get(c["mac"].lower(), {})
         enriched.append({**c, **{k: v for k, v in meta.items() if k in ("category", "sensitivity")}})
     return enriched
+    
+    
+
+def _apply_exposure_leds(level: int) -> None:
+    """Turn on the first N LEDs cumulatively; turn off the rest."""
+    # clamp to [1,5]
+    n = max(1, min(level, len(EXPOSURE_LED_PINS)))
+    for idx, pin in enumerate(EXPOSURE_LED_PINS, start=1):
+        if idx <= n:
+            turn_on(pin)
+        else:
+            turn_off(pin)
 # ---- end store helpers ----
 
 @app.websocket("/events")
@@ -126,6 +152,26 @@ async def events(ws: WebSocket) -> None:
 async def emit_event(event: Event) -> dict[str, Any]:
     """HTTP endpoint to broadcast an event to all listeners."""
     payload = event.dict()
+
+    # OPTIONAL: handle encoder_2 as the exposure controller
+    try:
+        if event.device == "encoder_2":
+            global _current_exposure_level
+            if event.type == "rotate" and isinstance(event.payload, str):
+                if event.payload == "cw":
+                    _current_exposure_level = min(_current_exposure_level + 1, 5)
+                elif event.payload == "ccw":
+                    _current_exposure_level = max(_current_exposure_level - 1, 1)
+                _apply_exposure_leds(_current_exposure_level)
+                # also push an 'exposure' update to UIs
+                payload = {"type": "exposure", "device": "server", "payload": _current_exposure_level}
+            elif event.type == "button" and event.payload == "press":
+                # cycle 1→5 (optional)
+                _current_exposure_level = 1 if _current_exposure_level >= 5 else _current_exposure_level + 1
+                _apply_exposure_leds(_current_exposure_level)
+                payload = {"type": "exposure", "device": "server", "payload": _current_exposure_level}
+    except Exception as e:
+        log.warning("encoder_2 exposure handling failed: %r", e)
     for ws in list(connected):
         try:
             await ws.send_json(payload)
@@ -228,3 +274,25 @@ async def wifi_clients_with_meta(iface: str = "wlan0") -> dict[str, Any]:
     merged = _enrich_clients(items)
     log.info("HTTP /wifi/clients_with_meta iface=%s returned=%d", iface, len(merged))
     return {"clients": merged}
+
+
+@app.get("/exposure")
+async def get_exposure() -> dict[str, Any]:
+    return {"level": _current_exposure_level}
+
+@app.post("/exposure")
+async def set_exposure(payload: Exposure) -> dict[str, Any]:
+    global _current_exposure_level
+    # validate 1..5 (clamp or reject; here we clamp)
+    level = max(1, min(int(payload.level), 5))
+    _current_exposure_level = level
+    log.info("Set exposure level=%d", level)
+    _apply_exposure_leds(level)
+    # broadcast to connected UIs so they can reflect the change
+    for ws in list(connected):
+        try:
+            await ws.send_json({"type": "exposure", "device": "server", "payload": level})
+        except Exception:
+            if ws in connected:
+                connected.remove(ws)
+    return {"level": level}
