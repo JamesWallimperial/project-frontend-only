@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 import subprocess
 import json, os, tempfile
+from enum import Enum
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -73,6 +74,15 @@ EXPOSURE_LED_PINS = [
 
 _current_exposure_level = 1  # default on boot
 
+class DeviceStatus(str, Enum):
+    disconnected = "Disconnected"
+    local        = "Local-only"
+    online       = "Online"
+    cloud        = "Cloud-Connected"
+
+class StatusPayload(BaseModel):
+    status: DeviceStatus
+
 # ---- simple JSON store for per-device metadata ----
 def _store_path() -> Path:
     default = Path(__file__).resolve().parents[2] / "data" / "devices.json"
@@ -83,9 +93,15 @@ def _load_store() -> dict[str, dict[str, Any]]:
     if not p.exists():
         return {}
     try:
-        return json.loads(p.read_text())
+        data = json.loads(p.read_text())
     except Exception:
         return {}
+    # Backfill defaults for older records
+    for mac, rec in data.items():
+        rec.setdefault("category", None)
+        rec.setdefault("sensitivity", None)
+        rec.setdefault("status", DeviceStatus.online.value)  # "Online"
+    return data
 
 def _atomic_write(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -111,12 +127,18 @@ def _get_device(mac: str) -> dict[str, Any] | None:
 def _get_all_devices() -> dict[str, dict[str, Any]]:
     return _load_store()
 
+
 def _enrich_clients(clients: list[dict[str, Any]]) -> list[dict[str, Any]]:
     store = _get_all_devices()
     enriched = []
     for c in clients:
         meta = store.get(c["mac"].lower(), {})
-        enriched.append({**c, **{k: v for k, v in meta.items() if k in ("category", "sensitivity")}})
+        enriched.append({
+            **c,
+            "category": meta.get("category"),
+            "sensitivity": meta.get("sensitivity"),
+            "status": meta.get("status", DeviceStatus.online.value),
+        })
     return enriched
     
     
@@ -268,14 +290,6 @@ async def get_devices() -> dict[str, dict[str, Any]]:
     return _get_all_devices()
     
     
-@app.get("/wifi/clients_with_meta")
-async def wifi_clients_with_meta(iface: str = "wlan0") -> dict[str, Any]:
-    items = list_clients(iface)
-    merged = _enrich_clients(items)
-    log.info("HTTP /wifi/clients_with_meta iface=%s returned=%d", iface, len(merged))
-    return {"clients": merged}
-
-
 @app.get("/exposure")
 async def get_exposure() -> dict[str, Any]:
     return {"level": _current_exposure_level}
@@ -296,3 +310,28 @@ async def set_exposure(payload: Exposure) -> dict[str, Any]:
             if ws in connected:
                 connected.remove(ws)
     return {"level": level}
+
+def _load_devices_db() -> dict[str, dict[str, Any]]:
+    path = _devices_db_path()  # your existing helper/path
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text())
+    # Ensure defaults for older entries:
+    for mac, rec in data.items():
+        rec.setdefault("category", None)
+        rec.setdefault("sensitivity", None)
+        rec.setdefault("status", DeviceStatus.online.value)  # "Online"
+    return data
+
+@app.post("/devices/{mac}/status")
+async def set_device_status(mac: str, payload: StatusPayload) -> dict[str, Any]:
+    log.info("HTTP POST /devices/%s/status value=%s", mac, payload.status.value)
+    record = _set_device_attrs(mac, status=payload.status.value)
+    return {"mac": mac, **record}
+    
+@app.get("/wifi/clients_with_meta")
+async def wifi_clients_with_meta(iface: str = "wlan0") -> dict[str, Any]:
+    items = list_clients(iface)
+    merged = _enrich_clients(items)
+    log.info("HTTP /wifi/clients_with_meta iface=%s returned=%d", iface, len(merged))
+    return {"clients": merged}
