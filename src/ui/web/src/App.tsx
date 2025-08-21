@@ -1,60 +1,81 @@
-import { useState, useEffect, useRef } from "react";
-import Startup from "./startup/Startup";
-import AccessPoint from "./setup/AccessPoint";
-import HomeAssistant from "./setup/HomeAssistant";
-import DeviceSelection from "./setup/DeviceSelection";
-import CategorySelection from "./setup/CategorySelection";
-import ExposureSelection, { SensitivityOption } from "./setup/ExposureSelection";
-import HomeScreen from "./home/HomeScreen";
-import DashboardScreen from "./home/DashboardScreen";
-import OnlineDevices from "./home/OnlineDevices";
-
-export default function App() {
-  const [step, setStep] = useState(0);
-  const [lastDevice, setLastDevice] = useState<string | null>(null);
-
-  interface WiFiClient {
-    ip: string;
-    mac: string;
-    hostname: string;
-    signal?: number | null;
-    category?: string;
-    sensitivity?: "high" | "medium" | "low";
-  }
-
-  const [clients, setClients] = useState<WiFiClient[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+import { useState, useEffect, useRef } from "react";
+import Startup from "./startup/Startup";
+import AccessPoint from "./setup/AccessPoint";
+import HomeAssistant from "./setup/HomeAssistant";
+import DeviceSelection from "./setup/DeviceSelection";
+import CategorySelection from "./setup/CategorySelection";
+import ExposureSelection, { SensitivityOption } from "./setup/ExposureSelection";
+import HomeScreen from "./home/HomeScreen";
+import DashboardScreen from "./home/DashboardScreen";
+import OnlineDevices from "./home/OnlineDevices";
+import CloudDevices from "./home/CloudDevices";
+import LocalDevices from "./home/LocalDevices";
+import DeviceStatusScreen from "./home/DeviceStatusScreen";
+
+// ---- Device status constants/types (define BEFORE the interface) ----
+const STATUS_OPTIONS = [
+  "Disconnected",
+  "Local-only",
+  "Online",
+  "Cloud-Connected",
+] as const;
+type DeviceStatusStr = typeof STATUS_OPTIONS[number];
+
+export default function App() {
+  const [step, setStep] = useState(0);
+  const [lastDevice, setLastDevice] = useState<string | null>(null);
+
+  interface WiFiClient {
+    ip: string;
+    mac: string;
+    hostname: string;
+    signal?: number | null;
+    category?: string;
+    sensitivity?: "high" | "medium" | "low";
+    status?: DeviceStatusStr; // <-- single, typed status
+  }
+
+  const [clients, setClients] = useState<WiFiClient[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [exposureLevel, setExposureLevel] = useState<number>(1);
-
-  // Show only devices that still need category or sensitivity
-  const unconfiguredClients = clients.filter(
-    (c) => !c.category || !c.sensitivity
-  );
-
-  const sensitivityOptions: SensitivityOption[] = [
-    { label: "High Sensitivity", value: "high", color: "red" },
-    { label: "Medium Sensitivity", value: "medium", color: "yellow" },
-    { label: "Low Sensitivity", value: "low", color: "green" },
-  ];
-
-  const stepRef = useRef(step);
-  const clientsRef = useRef(clients);
-  const selectedRef = useRef(selectedIndex);
-  const selectedDeviceRef = useRef(selectedDevice);
-
-  useEffect(() => {
-    stepRef.current = step;
-  }, [step]);
-  useEffect(() => {
-    clientsRef.current = clients;
-  }, [clients]);
-  useEffect(() => {
-    selectedRef.current = selectedIndex;
-  }, [selectedIndex]);
-  useEffect(() => {
-    selectedDeviceRef.current = selectedDevice;
-  }, [selectedDevice]);
+  const [returnStep, setReturnStep] = useState<number>(7);
+
+  // Show only devices that still need category or sensitivity
+  const unconfiguredClients = clients.filter(
+    (c) => !c.category || !c.sensitivity
+  );
+
+  const sensitivityOptions: SensitivityOption[] = [
+    { label: "High Sensitivity", value: "high", color: "red" },
+    { label: "Medium Sensitivity", value: "medium", color: "yellow" },
+    { label: "Low Sensitivity", value: "low", color: "green" },
+  ];
+
+  const stepRef = useRef(step);
+  const clientsRef = useRef(clients);
+  const selectedRef = useRef(selectedIndex);
+  const selectedDeviceRef = useRef(selectedDevice);
+
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+  useEffect(() => {
+    clientsRef.current = clients;
+  }, [clients]);
+  useEffect(() => {
+    selectedRef.current = selectedIndex;
+  }, [selectedIndex]);
+  useEffect(() => {
+    selectedDeviceRef.current = selectedDevice;
+  }, [selectedDevice]);
+
+  // Treat missing status as Online (back-compat)
+  const statusOf = (c: WiFiClient): DeviceStatusStr => c.status ?? "Online";
+
+  const onlineList = clients.filter((c) => statusOf(c) === "Online");
+  const cloudList = clients.filter((c) => statusOf(c) === "Cloud-Connected");
+  const localList = clients.filter((c) => statusOf(c) === "Local-only");
 
   // ----- API base URL (prefer env; fallback to port 8000 on current host) -----
   function getApiBaseUrl(): string {
@@ -285,13 +306,13 @@ export default function App() {
                    setStep(8);
                    break;
                  case 1: // Cloud (right)
-                   // TODO: setStep(9) if/when you add a Cloud screen
+                   setStep(9);
                    break;
                  case 2: // Settings (bottom)
                    // TODO: open settings screen
                    break;
                  case 3: // Local-only (left)
-                   // TODO: setStep(10) if/when you add Local-only screen
+                   setStep(10);
                    break;
                  default:
                    // Safety: clamp and try again
@@ -302,8 +323,8 @@ export default function App() {
              }
            } else if (stepRef.current === 8) {
             // List of "online" devices; for now, all clients are online
-             const list = clientsRef.current;
-             const total = list.length + 1;
+             const list = clientsRef.current.filter(c => (c.status ?? "Online") === "Online");
+             const total = list.length + 1; 
              if (total > 0 && type === "rotate") {
                if (payload === "cw") {
                  setSelectedIndex((prev) => (prev - 1 + total) % total); // using your reversed nav
@@ -314,7 +335,8 @@ export default function App() {
                const chosen = list[selectedRef.current];
                if (chosen) {
                  setSelectedDevice(chosen.mac);
-                 // TODO: navigate to a device details screen if/when you add one
+                 setReturnStep(8);     // back returns to Online
+                 setStep(11);          // go to status picker
                }
              }
              if (type === "button") {
@@ -335,7 +357,113 @@ export default function App() {
                  return;
                }
              }
-
+           } else if (stepRef.current === 9) {
+             // Cloud screen: 0 = Back, 1..N = devices
+             const list = clientsRef.current.filter(c => (c.status ?? "Online") === "Cloud-Connected");
+             const total = list.length + 1;
+
+             if (type === "rotate") {
+               const dir = String(payload ?? "").toLowerCase();
+               if (dir === "cw") setSelectedIndex((prev) => (prev - 1 + total) % total);
+               else if (dir === "ccw") setSelectedIndex((prev) => (prev + 1) % total);
+               return;
+             }
+           
+             if (type === "button") {
+               const press = String(payload ?? "").toLowerCase();
+               const isPress = press === "press" || press === "click" || press === "short" || press === "down";
+               if (isPress) {
+                 const sel = selectedRef.current;
+                 if (sel === 0) setStep(7); // Back
+                 else {
+                   const chosen = list[sel - 1];
+                   if (chosen) {
+                     setSelectedDevice(chosen.mac);
+                     setReturnStep(9);     // back returns to Online
+                     setStep(11);          // go to status picker
+                   }
+                 }
+                 return;
+               }
+             }
+           
+           } else if (stepRef.current === 10) {
+             // Local-only screen: 0 = Back, 1..N = devices
+             const list = clientsRef.current.filter(c => (c.status ?? "Online") === "Local-only");
+             const total = list.length + 1;
+           
+             if (type === "rotate") {
+               const dir = String(payload ?? "").toLowerCase();
+               if (dir === "cw") setSelectedIndex((prev) => (prev - 1 + total) % total);
+               else if (dir === "ccw") setSelectedIndex((prev) => (prev + 1) % total);
+               return;
+             }
+           
+             if (type === "button") {
+               const press = String(payload ?? "").toLowerCase();
+               const isPress = press === "press" || press === "click" || press === "short" || press === "down";
+               if (isPress) {
+                 const sel = selectedRef.current;
+                 if (sel === 0) setStep(7); // Back
+                 else {
+                   const chosen = list[sel - 1];
+                   if (chosen) {
+                     setSelectedDevice(chosen.mac);
+                     setReturnStep(10);     // back returns to Online
+                     setStep(11);          // go to status picker
+                   }
+                 }
+                 return;
+               }
+             }
+           } else if (stepRef.current === 11) {
+             // Status picker: index 0 = Back, 1..4 = STATUS_OPTIONS[0..3]
+             const total = STATUS_OPTIONS.length + 1;
+           
+             if (type === "rotate") {
+               const dir = String(payload ?? "").toLowerCase();
+               if (dir === "cw") {
+                 setSelectedIndex((prev) => (prev - 1 + total) % total); // keep your reversed CW
+               } else if (dir === "ccw") {
+                 setSelectedIndex((prev) => (prev + 1) % total);
+               }
+               return;
+             }
+           
+             if (type === "button") {
+               const press = String(payload ?? "").toLowerCase();
+               const isPress = press === "press" || press === "click" || press === "short" || press === "down";
+               if (isPress) {
+                 const sel = selectedRef.current;
+                 if (sel === 0) {
+                   // Back to the list we came from
+                   setStep(returnStep);
+                 } else {
+                   const mac = selectedDeviceRef.current;
+                   const chosen = STATUS_OPTIONS[sel - 1];
+                   if (mac && chosen) {
+                     const base = getApiBaseUrl();
+                     fetch(`${base}/devices/${mac}/status`, {
+                       method: "POST",
+                       headers: { "Content-Type": "application/json" },
+                       body: JSON.stringify({ status: chosen }),
+                     })
+                       .then(() => {
+                         // Optimistic local update
+                         setClients(prev =>
+                           prev.map(c => c.mac === mac ? { ...c, status: chosen } : c)
+                         );
+                         // After saving, go to Dashboard (main menu)
+                         setSelectedDevice(null);
+                         setSelectedIndex(0);
+                         setStep(7);
+                       })
+                       .catch(err => console.error("Failed to persist status", err));
+                   }
+                 }
+                 return;
+               }
+             }
 
         // Steps 0–2: simple advance on press
         } else if (stepRef.current <= 2) {
@@ -402,7 +530,18 @@ export default function App() {
 
     }
       else if (step === 8) {
-      setSelectedIndex(1);
+      setSelectedIndex( onlineList.length > 0 ? 1 : 0 );
+    } else if (step === 9) {
+      setSelectedIndex( cloudList.length > 0 ? 1 : 0 );
+    } else if (step === 10) {
+      setSelectedIndex( localList.length > 0 ? 1 : 0 );
+    } else if (step === 11) {
+     // default highlight = current status, otherwise "Online"
+      const mac = selectedDevice;
+      const dev = clients.find(c => c.mac === mac);
+      const current = dev?.status ?? "Online";
+      const idx = STATUS_OPTIONS.indexOf(current as DeviceStatusStr);
+      setSelectedIndex(idx >= 0 ? idx + 1 : 1); // +1 because 0 is Back
     }
   }, [step]);
 
@@ -468,9 +607,9 @@ export default function App() {
       break;
     }
     case 7: {
-      const localOnly = 0;           // TODO real calc
-      const online = clients.length; // placeholder
-      const cloud = 0;               // TODO real calc
+      const localOnly = localList.length;
+      const online    = onlineList.length;
+      const cloud     = cloudList.length;
       content = (
         <DashboardScreen
           localOnly={localOnly}
@@ -481,9 +620,9 @@ export default function App() {
           onActivate={(idx) => {
             switch (idx) {
               case 0: /* Online */ setStep(8); break;
-              case 1: /* Cloud */ break;
+              case 1: /* Cloud */ setStep(9); break;
               case 2: /* Settings */ break;
-              case 3: /* Local-only */ break;
+              case 3: /* Local-only */ setStep(10); break;
             }
           }}
         />
@@ -493,8 +632,28 @@ export default function App() {
     case 8:
       content = (
         <OnlineDevices
-          devices={clients}          // clients are the currently online devices
+          devices={onlineList}          // clients are the currently online devices
           selectedIndex={selectedIndex}
+          onBack={() => setStep(7)}
+        />
+      );
+      break;
+
+    case 9:
+      content = (
+        <CloudDevices
+          devices={cloudList}
+          selectedIndex={selectedIndex}
+          onBack={() => setStep(7)}
+        />
+      );
+      break;
+    
+    case 10:
+      content = (
+        <LocalDevices
+          devices={localList}
+          selectedIndex={selectedIndex}
           onBack={() => setStep(7)}
         />
       );
@@ -503,8 +662,45 @@ export default function App() {
     default:
       content = null;
       break;
-  } 
-
+ 
+    case 11: {
+      const mac = selectedDevice;
+      const dev = clients.find(c => c.mac === mac);
+      const label = dev?.hostname || dev?.mac || dev?.ip || "Device";
+      const current = (dev?.status ?? "Online") as DeviceStatusStr;
+    
+      const onChoose = (status: DeviceStatusStr) => {
+        if (!mac) return;
+        const base = getApiBaseUrl();
+        fetch(`${base}/devices/${mac}/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        })
+          .then(() => {
+            setClients(prev =>
+              prev.map(c => c.mac === mac ? { ...c, status } : c)
+            );
+            setSelectedDevice(null);
+            setSelectedIndex(0);
+            setStep(7); // back to Dashboard
+          })
+          .catch(err => console.error("Failed to persist status", err));
+      };
+
+      content = (
+        <DeviceStatusScreen
+          deviceName={label}
+          currentStatus={current}
+          options={[...STATUS_OPTIONS]}
+          selectedIndex={selectedIndex}
+          onBack={() => setStep(returnStep)}
+          onChoose={onChoose}
+        />
+      );
+      break;
+    }
+  }
   return (
     <>
       {content}
