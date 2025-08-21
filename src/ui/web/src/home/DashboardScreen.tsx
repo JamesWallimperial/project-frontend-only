@@ -1,85 +1,1 @@
-import styles from "../setup/Setup.module.css";
-
-interface Props {
-  online: number;
-  blocked: number;
-  cloud: number;
-  alerts: number;
-  exposureLevel: number;                 // <-- NEW
-  selectedIndex: number;
-  onActivate: (index: number) => void;
-  onPrivacy?: () => void;
-  onOnline?: () => void;
-  onBlocked?: () => void;
-  onCloud?: () => void;
-  onAlerts?: () => void;
-}
-
-export default function DashboardScreen({
-  online, blocked, cloud, alerts,
-  exposureLevel,                       // <-- NEW
-  selectedIndex, onActivate,
-  onPrivacy, onOnline, onBlocked, onCloud, onAlerts,
-}: Props) {
-  const isSel = (i: number) => (selectedIndex === i ? styles.bubbleSelected : "");
-
-  return (
-    <div className={styles.app} role="region" aria-label="Dashboard">
-      <div className={styles.circleFrame}>
-        <div className={styles.centerStack}>
-          <div className={styles.dashWrap}>
-            {/* 0: center — show level + tint class */}
-            <button
-              className={`${styles.bubble} ${styles.bubbleCenter} ${styles[`bubbleCenterL${Math.max(1, Math.min(5, exposureLevel))}`]} ${isSel(0)}`}
-              onClick={() => { onActivate(0); onPrivacy?.(); }}
-              aria-selected={selectedIndex === 0}
-            >
-              <span className={styles.bubbleValue}>L{Math.max(1, Math.min(5, exposureLevel))}</span>
-              <span className={styles.bubbleTitle}>Exposure</span>
-            </button>
-
-            {/* 1: top (online) */}
-            <button
-              className={`${styles.bubble} ${styles.bubbleTop} ${styles.bubbleOnline} ${isSel(1)}`}
-              onClick={() => { onActivate(1); onOnline?.(); }}
-              aria-selected={selectedIndex === 1}
-            >
-              <span className={styles.bubbleValue}>{online}</span>
-              <span className={styles.bubbleTitle}>Devices online</span>
-            </button>
-
-            {/* 2: right (blocked) */}
-            <button
-              className={`${styles.bubble} ${styles.bubbleRight} ${styles.bubbleBlocked} ${isSel(2)}`}
-              onClick={() => { onActivate(2); onBlocked?.(); }}
-              aria-selected={selectedIndex === 2}
-            >
-              <span className={styles.bubbleValue}>{blocked}</span>
-              <span className={styles.bubbleTitle}>Devices blocked</span>
-            </button>
-
-            {/* 3: bottom (cloud) */}
-            <button
-              className={`${styles.bubble} ${styles.bubbleBottom} ${styles.bubbleCloud} ${isSel(3)}`}
-              onClick={() => { onActivate(3); onCloud?.(); }}
-              aria-selected={selectedIndex === 3}
-            >
-              <span className={styles.bubbleValue}>{cloud}</span>
-              <span className={styles.bubbleTitle}>Cloud-connected</span>
-            </button>
-
-            {/* 4: left (alerts) */}
-            <button
-              className={`${styles.bubble} ${styles.bubbleLeft} ${styles.bubbleAlerts} ${isSel(4)}`}
-              onClick={() => { onActivate(4); onAlerts?.(); }}
-              aria-selected={selectedIndex === 4}
-            >
-              <span className={styles.bubbleValue}>{alerts}</span>
-              <span className={styles.bubbleTitle}>Alerts</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import styles from "../setup/Setup.module.css";interface Props {  localOnly: number;  online: number;  cloud: number;  exposureLevel: number;  /** Selected OUTER bubble: 0=top(Online), 1=right(Cloud), 2=bottom(Settings), 3=left(Local) */  selectedIndex: number;  onActivate: (index: number) => void; // index per mapping above}export default function DashboardScreen({  localOnly, online, cloud,  exposureLevel,  selectedIndex, onActivate,}: Props) {  const isSel = (i: number) => (selectedIndex === i ? styles.bubbleSelected : "");  return (    <div className={styles.app} role="region" aria-label="Dashboard">      <div className={styles.circleFrame}>        <div className={styles.centerStack}>          <div className={styles.dashWrap}>            {/* CENTER: display only (no selection, no click) */}            <div              className={`${styles.bubble} ${styles.bubbleCenter} ${styles[`bubbleCenterL${Math.max(1, Math.min(5, exposureLevel))}`]} ${styles.bubbleDisplay}`}              aria-hidden="true"            >              <span className={styles.bubbleValue}>L{Math.max(1, Math.min(5, exposureLevel))}</span>              <span className={styles.bubbleTitle}>Exposure</span>            </div>            {/* 0: top — Online devices */}            <button              className={`${styles.bubble} ${styles.bubbleTop} ${styles.bubbleOnline} ${isSel(0)}`}              onClick={() => onActivate(0)}              aria-selected={selectedIndex === 0}              aria-label="Online devices"            >              <span className={styles.bubbleValue}>{online}</span>              <span className={styles.bubbleTitle}>Online</span>            </button>            {/* 1: right — Cloud-connected */}            <button              className={`${styles.bubble} ${styles.bubbleRight} ${styles.bubbleCloud} ${isSel(1)}`}              onClick={() => onActivate(1)}              aria-selected={selectedIndex === 1}              aria-label="Cloud-connected devices"            >              <span className={styles.bubbleValue}>{cloud}</span>              <span className={styles.bubbleTitle}>Cloud</span>            </button>            {/* 2: bottom — Settings (house icon) */}            <button              className={`${styles.bubble} ${styles.bubbleBottom} ${styles.bubbleHome} ${isSel(2)}`}              onClick={() => onActivate(2)}              aria-selected={selectedIndex === 2}              aria-label="Settings"              title="Settings"            >              <svg className={styles.homeIcon} viewBox="0 0 24 24" aria-hidden="true">                <path d="M3 10.5L12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z"/>              </svg>            </button>            {/* 3: left — Local-only devices */}            <button              className={`${styles.bubble} ${styles.bubbleLeft} ${styles.bubbleLocal} ${isSel(3)}`}              onClick={() => onActivate(3)}              aria-selected={selectedIndex === 3}              aria-label="Local-only devices"            >              <span className={styles.bubbleValue}>{localOnly}</span>              <span className={styles.bubbleTitle}>Local-only</span>            </button>          </div>        </div>      </div>    </div>  );}

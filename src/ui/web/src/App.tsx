@@ -7,6 +7,7 @@ import CategorySelection from "./setup/CategorySelection";
 import ExposureSelection, { SensitivityOption } from "./setup/ExposureSelection";
 import HomeScreen from "./home/HomeScreen";
 import DashboardScreen from "./home/DashboardScreen";
+import OnlineDevices from "./home/OnlineDevices";
 
 export default function App() {
   const [step, setStep] = useState(0);
@@ -79,17 +80,28 @@ export default function App() {
     return [] as WiFiClient[];
   }
 
-// === exposure: fetch initial level once ===
-  useEffect(() => {
-    const base = getApiBaseUrl();
-    fetch(`${base}/exposure`)
-      .then((r) => (r.ok ? r.json() : { level: 1 }))
-      .then(({ level }) => {
-        if (typeof level === "number") {
-          setExposureLevel(Math.max(1, Math.min(5, level)));
-        }
-      })
-      .catch(() => {});
+// === exposure: fetch initial level once ===
+
+  useEffect(() => {
+
+    const base = getApiBaseUrl();
+
+    fetch(`${base}/exposure`)
+
+      .then((r) => (r.ok ? r.json() : { level: 1 }))
+
+      .then(({ level }) => {
+
+        if (typeof level === "number") {
+
+          setExposureLevel(Math.max(1, Math.min(5, level)));
+
+        }
+
+      })
+
+      .catch(() => {});
+
   }, []);
 
 
@@ -105,14 +117,22 @@ export default function App() {
         const { type, device, payload } = JSON.parse(event.data);
         setLastDevice(device);
 
-     // --- keep the center bubble in sync with server/LED LEDs ---
-        if (type === "exposure") {
-          const lvl = Number(payload);
-          if (Number.isFinite(lvl)) {
-            setExposureLevel(Math.max(1, Math.min(5, lvl)));
-          }
-          return; // exposure updates don't affect the wizard flow
-        }
+     // --- keep the center bubble in sync with server/LED LEDs ---
+
+        if (type === "exposure") {
+
+          const lvl = Number(payload);
+
+          if (Number.isFinite(lvl)) {
+
+            setExposureLevel(Math.max(1, Math.min(5, lvl)));
+
+          }
+
+          return; // exposure updates don't affect the wizard flow
+
+        }
+
 
 
         // === STEP 3: device selection (only unconfigured clients) ===
@@ -224,9 +244,9 @@ export default function App() {
             if (type === "rotate") {
               const menuLen = 2; // ["Dashboard","Restart setup"]
               if (payload === "cw") {
-                setSelectedIndex(prev => (prev + 1) % menuLen);
-              } else if (payload === "ccw") {
                 setSelectedIndex(prev => (prev - 1 + menuLen) % menuLen);
+              } else if (payload === "ccw") {
+                setSelectedIndex(prev => (prev + 1) % menuLen);
               }
             } else if (type === "button" && payload === "press") {
               if (selectedRef.current === 0) {
@@ -239,23 +259,80 @@ export default function App() {
               }
             }
            } else if (stepRef.current === 7) {
-             // 5 selectable bubbles: 0=center, 1=top, 2=right, 3=bottom, 4=left
-             const total = 5;
+             // OUTER bubbles only: 0=top(Online), 1=right(Cloud), 2=bottom(Settings), 3=left(Local)
+             const total = 4;
+           
              if (type === "rotate") {
                if (payload === "cw") {
-                 setSelectedIndex(prev => (prev + 1) % total);
+                 setSelectedIndex((prev) => (prev - 1 + total) % total); // reversed nav
                } else if (payload === "ccw") {
-                 setSelectedIndex(prev => (prev - 1 + total) % total);
+                 setSelectedIndex((prev) => (prev + 1) % total);
+               }
+               return;
+             }
+
+             // Normalize button payloads from different firmwares
+             const p = String(payload ?? "").toLowerCase();
+             const isPress = type === "button" && (p === "press" || p === "click" || p === "short" || p === "down");
+
+             if (isPress) {
+               const idx = selectedRef.current; // 0..3
+               // TEMP: debug log (remove after verifying)
+               console.log("[step7] button press -> idx =", idx, "raw payload=", payload);
+
+               switch (idx) {
+                 case 0: // Online (top)
+                   setStep(8);
+                   break;
+                 case 1: // Cloud (right)
+                   // TODO: setStep(9) if/when you add a Cloud screen
+                   break;
+                 case 2: // Settings (bottom)
+                   // TODO: open settings screen
+                   break;
+                 case 3: // Local-only (left)
+                   // TODO: setStep(10) if/when you add Local-only screen
+                   break;
+                 default:
+                   // Safety: clamp and try again
+                   setSelectedIndex(0);
+                   break;
+               }
+               return;
+             }
+           } else if (stepRef.current === 8) {
+            // List of "online" devices; for now, all clients are online
+             const list = clientsRef.current;
+             const total = list.length + 1;
+             if (total > 0 && type === "rotate") {
+               if (payload === "cw") {
+                 setSelectedIndex((prev) => (prev - 1 + total) % total); // using your reversed nav
+               } else if (payload === "ccw") {
+                 setSelectedIndex((prev) => (prev + 1) % total);
                }
              } else if (type === "button" && payload === "press") {
-               // Trigger the same action as clicking the bubble
-               const idx = selectedRef.current;
-               switch (idx) {
-                 case 0: /* Privacy */ break;            // TODO: navigate/open details
-                 case 1: /* Online */ break;             // TODO
-                 case 2: /* Blocked */ break;            // TODO
-                 case 3: /* Cloud */ break;              // TODO
-                 case 4: /* Alerts */ break;             // TODO
+               const chosen = list[selectedRef.current];
+               if (chosen) {
+                 setSelectedDevice(chosen.mac);
+                 // TODO: navigate to a device details screen if/when you add one
+               }
+             }
+             if (type === "button") {
+               const press = String(payload ?? "").toLowerCase();
+               const isPress = press === "press" || press === "click" || press === "short" || press === "down";
+               if (isPress) {
+                 const sel = selectedRef.current;
+                 if (sel === 0) {
+                   // Back
+                   setStep(7);
+                 } else {
+                   const chosen = list[sel - 1];
+                   if (chosen) {
+                     setSelectedDevice(chosen.mac);
+                     // TODO: navigate to a device details screen if/when you add one
+                   }
+                 }
+                 return;
                }
              }
 
@@ -319,8 +396,13 @@ export default function App() {
       else if (step === 6) {
       setSelectedIndex(0);
     }
-      else if (step === 7) {
-      setSelectedIndex(0);
+      else if (step === 7) {
+
+      setSelectedIndex(0);
+
+    }
+      else if (step === 8) {
+      setSelectedIndex(1);
     }
   }, [step]);
 
@@ -386,32 +468,37 @@ export default function App() {
       break;
     }
     case 7: {
-      const online = clients.length;
-      const blocked = 0;
-      const cloud = 0;
-      const alerts = 0;
+      const localOnly = 0;           // TODO real calc
+      const online = clients.length; // placeholder
+      const cloud = 0;               // TODO real calc
       content = (
         <DashboardScreen
+          localOnly={localOnly}
           online={online}
-          blocked={blocked}
           cloud={cloud}
-          alerts={alerts}
           exposureLevel={exposureLevel}
-          selectedIndex={selectedIndex}
+          selectedIndex={selectedIndex}          // 0..3 outer only
           onActivate={(idx) => {
-            // Keep click behavior aligned with encoder button
             switch (idx) {
-              case 0: /* Privacy */ break;
-              case 1: /* Online */ break;
-              case 2: /* Blocked */ break;
-              case 3: /* Cloud */ break;
-              case 4: /* Alerts */ break;
+              case 0: /* Online */ setStep(8); break;
+              case 1: /* Cloud */ break;
+              case 2: /* Settings */ break;
+              case 3: /* Local-only */ break;
             }
           }}
         />
       );
       break;
     }
+    case 8:
+      content = (
+        <OnlineDevices
+          devices={clients}          // clients are the currently online devices
+          selectedIndex={selectedIndex}
+          onBack={() => setStep(7)}
+        />
+      );
+      break;
 
     default:
       content = null;
