@@ -10,7 +10,8 @@ import DashboardScreen from "./home/DashboardScreen";
 import OnlineDevices from "./home/OnlineDevices";
 import CloudDevices from "./home/CloudDevices";
 import LocalDevices from "./home/LocalDevices";
-import DeviceStatusScreen from "./home/DeviceStatusScreen";
+import DeviceStatusScreen from "./home/DeviceStatusScreen";
+import HomeMenu from "./home/HomeMenu";
 
 // ---- Device status constants/types (define BEFORE the interface) ----
 const STATUS_OPTIONS = [
@@ -76,6 +77,14 @@ export default function App() {
   const onlineList = clients.filter((c) => statusOf(c) === "Online");
   const cloudList = clients.filter((c) => statusOf(c) === "Cloud-Connected");
   const localList = clients.filter((c) => statusOf(c) === "Local-only");
+
+  const homeMenuItems = [
+    "Home Assistant",
+    "Per Category Controls",
+    "Scenes/Automation",
+    "Activity Log",
+    "Settings",
+  ];
 
   // ----- API base URL (prefer env; fallback to port 8000 on current host) -----
   function getApiBaseUrl(): string {
@@ -309,7 +318,7 @@ export default function App() {
                    setStep(9);
                    break;
                  case 2: // Settings (bottom)
-                   // TODO: open settings screen
+                   setStep(12);
                    break;
                  case 3: // Local-only (left)
                    setStep(10);
@@ -464,6 +473,61 @@ export default function App() {
                  return;
                }
              }
+           } else if (stepRef.current === 12) {
+             // Home Menu screen:
+             // index 0 = Back, 1..N = items from homeMenuItems[0..N-1]
+             const total = homeMenuItems.length + 1;
+           
+             // Normalize event type/payload for this block
+             const t = String(type || "").toLowerCase();
+             const p = String(payload ?? "").toLowerCase();
+           
+             // Rotate to move selection (reversed CW per your UI)
+             if (t === "rotate") {
+               if (p === "cw") {
+                 setSelectedIndex((prev) => (prev - 1 + total) % total);
+               } else if (p === "ccw") {
+                 setSelectedIndex((prev) => (prev + 1) % total);
+               }
+               return; // consume event
+             }
+
+             // Button press to activate selection
+             const isPress =
+               t === "button" && (p === "press" || p === "click" || p === "short" || p === "down");
+           
+             if (isPress) {
+               const sel = selectedRef.current;
+           
+               if (sel === 0) {
+                 // Back to Dashboard
+                 setSelectedIndex(0);
+                 setStep(7);
+               } else {
+                 // Activate chosen menu item (sel-1)
+                 const label = homeMenuItems[sel - 1];
+           
+                 switch (label) {
+                   case "Home Assistant":
+                     setSelectedIndex(0);
+                     setStep(2); // your existing HA step
+                     break;
+
+                   // Wire these to real screens later; for now return to dashboard
+                   case "Per Category Controls":
+                   case "Scenes/Automation":
+                   case "Activity Log":
+                   case "Settings":
+                   default:
+                     setSelectedIndex(0);
+                     setStep(7);
+                     break;
+                 }
+               }
+               return; // consume event
+             }
+           
+           
 
         // Steps 0–2: simple advance on press
         } else if (stepRef.current <= 2) {
@@ -541,7 +605,9 @@ export default function App() {
       const dev = clients.find(c => c.mac === mac);
       const current = dev?.status ?? "Online";
       const idx = STATUS_OPTIONS.indexOf(current as DeviceStatusStr);
-      setSelectedIndex(idx >= 0 ? idx + 1 : 1); // +1 because 0 is Back
+      setSelectedIndex(idx >= 0 ? idx + 1 : 1); // +1 because 0 is Back
+    } else if (step === 12) {
+      setSelectedIndex(0);
     }
   }, [step]);
 
@@ -621,7 +687,7 @@ export default function App() {
             switch (idx) {
               case 0: /* Online */ setStep(8); break;
               case 1: /* Cloud */ setStep(9); break;
-              case 2: /* Settings */ break;
+              case 2: /* Settings */ setStep(12); break;
               case 3: /* Local-only */ setStep(10); break;
             }
           }}
@@ -700,6 +766,20 @@ export default function App() {
       );
       break;
     }
+    case 12:
+      content = (
+        <HomeMenu
+          items={homeMenuItems}
+          selectedIndex={selectedIndex}
+          onBack={() => setStep(7)}
+          onActivate={(idx) => {
+            console.log("[HomeMenu] clicked", homeMenuItems[idx]);
+            setSelectedIndex(0);
+            setStep(7); // placeholder: back to dashboard after click
+          }}
+        />
+      );
+      break;
   }
   return (
     <>
