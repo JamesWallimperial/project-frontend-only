@@ -108,18 +108,22 @@ class EncoderFactory:
         self.watchers: list[RotaryEncoderWatcher] = []
 
     # ------------------------------------------------------------------
-    def spawn(self, encoder_configs: Iterable[dict[str, int | str]]) -> list[RotaryEncoderWatcher]:
-        """Create and start watchers for each encoder configuration."""
-
+    def spawn(self, encoder_configs):
         for cfg in encoder_configs:
-            device_id = cfg.get("device_id")
-            pin_a = cfg.get("pin_a")
-            pin_b = cfg.get("pin_b")
+            device_id = str(cfg["device_id"])
+            pin_a = int(cfg["pin_a"]); pin_b = int(cfg["pin_b"])
             pin_sw = cfg.get("pin_sw")
-            if None in (device_id, pin_a, pin_b, pin_sw):
-                raise ValueError("Encoder config requires pin_a, pin_b, pin_sw and device_id")
-
-            watcher = RotaryEncoderWatcher(int(pin_a), int(pin_b), int(pin_sw), str(device_id), self.api_url)
+            ignore_button = bool(cfg.get("ignore_button", False))
+            # treat pin_sw None or <0 as no button
+            if pin_sw is None:
+                ignore_button = True
+            else:
+                pin_sw = int(pin_sw)
+                if pin_sw < 0:
+                    ignore_button = True
+    
+            watcher = RotaryEncoderWatcher(pin_a, pin_b, pin_sw, device_id, self.api_url)
+            watcher.ignore_button = ignore_button
             watcher.start()
             self.watchers.append(watcher)
         return self.watchers
@@ -172,7 +176,7 @@ def main() -> None:  # pragma: no cover - hardware dependent
         "encoders",
         [
             {"pin_a": 17, "pin_b": 27, "pin_sw": 22, "device_id": "encoder_1"},
-            {"pin_a": 23, "pin_b": 24, "pin_sw": 25, "device_id": "encoder_2"},
+            {"pin_a": 23, "pin_b": 24, "pin_sw": 7, "device_id": "encoder_2"},
         ],
     )
 

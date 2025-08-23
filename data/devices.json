@@ -1,28 +1,28 @@
 {
   "14:d0:0d:03:aa:06": {
     "category": "Personal Devices",
-    "sensitivity": "high",
-    "status": "Online"
+    "sensitivity": "medium",
+    "status": "Cloud-Connected"
   },
   "30:68:93:7c:6f:74": {
-    "category": "Other/Unknown",
+    "category": "Appliance or Light",
     "sensitivity": "low",
     "status": "Cloud-Connected"
   },
   "32:36:62:d2:e8:04": {
-    "category": "Smart Speaker",
-    "sensitivity": "high",
+    "category": "Personal Devices",
+    "sensitivity": "medium",
     "status": "Local-only"
   },
   "7c:f1:7e:21:aa:b0": {
-    "category": "Entertainment",
-    "sensitivity": "medium",
-    "status": "Online"
+    "category": "Smart Speaker",
+    "sensitivity": "high",
+    "status": "Cloud-Connected"
   },
   "98:ba:5f:c6:ff:2b": {
-    "category": "Personal Devices",
-    "sensitivity": "low",
-    "status": "Local-only"
+    "category": "Security & Monitoring",
+    "sensitivity": "high",
+    "status": "Online"
   },
   "dc:62:79:8c:e1:52": {
     "category": "Appliance or Light",
