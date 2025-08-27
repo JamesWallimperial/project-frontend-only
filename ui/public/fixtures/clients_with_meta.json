@@ -1,0 +1,9 @@
+﻿{
+  "clients": [
+    { "ip": "10.42.0.12", "mac": "aa:bb:cc:dd:ee:01", "hostname": "Kitchen Speaker",   "signal": -54, "category": "Smart Speaker",           "sensitivity": "medium", "status": "Online" },
+    { "ip": "10.42.0.23", "mac": "aa:bb:cc:dd:ee:02", "hostname": "Front Door Cam",    "signal": -61, "category": "Security & Monitoring",  "sensitivity": "high",   "status": "Cloud-Connected" },
+    { "ip": "10.42.0.37", "mac": "aa:bb:cc:dd:ee:03", "hostname": "Living Room TV",    "signal": -49, "category": "Entertainment",          "sensitivity": "low",    "status": "Online" },
+    { "ip": "10.42.0.45", "mac": "aa:bb:cc:dd:ee:04", "hostname": "Thermostat",        "signal": -58, "category": "Appliance or Light",     "sensitivity": "medium", "status": "Local-only" },
+    { "ip": "10.42.0.51", "mac": "aa:bb:cc:dd:ee:05", "hostname": "Baby Monitor",      "signal": -65, "category": "Security & Monitoring",  "sensitivity": "high",   "status": "Disconnected" }
+  ]
+}

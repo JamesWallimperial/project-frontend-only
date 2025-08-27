@@ -1,0 +1,598 @@
+.app {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 45%, #0f1730 0%, var(--bg) 70%);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.circleFrame {
+  width: min(92vmin, 700px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: #0c1325;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--ring);
+  box-shadow: 0 0 0 10px rgba(31, 42, 68, 0.35) inset;
+}
+
+.centerStack {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 6vmin;
+  text-align: center;
+  gap: 3vmin;
+}
+
+.center-bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  line-height: 1.2;
+}
+
+/* Prevent center ring/decoration from swallowing clicks on status screen */
+.circleFrame::before { pointer-events: none; }
+
+/* Make the list and items sit above decorations and accept clicks */
+.deviceList { position: relative; z-index: 5; pointer-events: auto; }
+.deviceItem { cursor: pointer; pointer-events: auto; }
+
+.title {
+  font-size: clamp(20px, 4vmin, 30px);
+  letter-spacing: 0.6px;
+  opacity: 0.95;
+}
+
+.subtitle {
+  font-size: clamp(12px, 2.2vmin, 16px);
+  color: var(--muted);
+  margin-top: -1vmin;
+}
+
+.deviceItem { cursor: pointer; pointer-events: auto; }
+
+.credentials {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: clamp(12px, 2.4vmin, 16px);
+}
+
+.qrPlaceholder {
+  width: 40vmin;
+  height: 40vmin;
+  border: 4px dashed var(--ring);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: clamp(12px, 3vmin, 18px);
+}
+
+.qrImage {
+  width: 40vmin;
+  height: 40vmin;
+}
+
+.primaryBtn {
+  appearance: none;
+  border: none;
+  padding: 1rem 1.25rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #14c9a5, var(--accent));
+  color: #052014;
+  font-weight: 700;
+  font-size: clamp(14px, 2.6vmin, 18px);
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);
+  transition: transform 0.08s ease, filter 0.2s ease;
+}
+
+.primaryBtn:active {
+  transform: translateY(1px) scale(0.996);
+}
+
+.primaryBtn:focus-visible {
+  outline: 2px solid #36e0bf;
+  outline-offset: 3px;
+}
+.deviceList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.deviceItem {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+  .deviceItemSelected {
+    background: var(--accent);
+    color: #052014;
+  }
+
+  .actionButtons {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  
+.colorDot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08); 
+}
+.deviceItemSelected .colorDot {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+
+.deviceItemEmpty {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* --- Home screen layout helpers --- */
+.homeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: min(70vmin, 520px);
+  margin-top: 0.5rem;
+}
+
+.homeCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.homeStatLabel {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.homeStatValue {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.homeActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+/* --- Step 6 menu --- */
+.homeMenu {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(60vmin, 420px);
+  margin-inline: auto;
+}
+.homeMenuItem {
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.homeMenuItemSelected {
+  background: var(--accent);
+  color: #052014;
+}
+
+/* --- Dashboard bubbles --- */
+.dashWrap {
+  position: relative;
+  width: min(70vmin, 520px);
+  height: min(70vmin, 520px);
+  margin-top: 0.5rem;
+}
+
+.bubble {
+  position: absolute;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+/* Thicker text inside bubbles */
+.bubbleTitle { 
+  font-weight: 700;
+}
+.bubbleValue { 
+  font-weight: 900;
+}
+
+.bubbleCenter {
+  width: 10rem;
+  height: 10rem;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 201, 165, 0.55);
+  border: 1px solid rgba(20, 201, 165, 0.65);
+}
+
+/* Color/darkness for outer bubbles + white text */
+.bubbleOnline {
+  background: rgba(59, 130, 246, 0.55);   /* darker blue */
+  border-color: rgba(59, 130, 246, 0.85);
+  color: #fff;
+}
+.bubbleOnline:hover,
+.bubbleOnline:focus-visible {
+  background: rgba(59, 130, 246, 0.65);
+  border-color: rgba(59, 130, 246, 1);
+  outline: none;
+}
+
+.bubbleCloud {
+  background: rgba(139, 92, 246, 0.55);   /* darker purple */
+  border-color: rgba(139, 92, 246, 0.85);
+  color: #fff;
+}
+.bubbleCloud:hover,
+.bubbleCloud:focus-visible {
+  background: rgba(139, 92, 246, 0.65);
+  border-color: rgba(139, 92, 246, 1);
+  outline: none;
+}
+
+/* Local-only bubble (green-ish, darker) */
+.bubbleLocal {
+  background: rgba(34, 197, 94, 0.55);
+  border-color: rgba(34, 197, 94, 0.85);
+  color: #fff;
+}
+.bubbleLocal:hover,
+.bubbleLocal:focus-visible {
+  background: rgba(34, 197, 94, 0.65);
+  border-color: rgba(34, 197, 94, 1);
+  outline: none;
+}
+
+/* Home (settings) bubble (neutral gray, darker) */
+.bubbleHome {
+  background: rgba(107, 114, 128, 0.55);
+  border-color: rgba(107, 114, 128, 0.85);
+  color: #fff;
+}
+.bubbleHome:hover,
+.bubbleHome:focus-visible {
+  background: rgba(107, 114, 128, 0.65);
+  border-color: rgba(107, 114, 128, 1);
+  outline: none;
+}
+
+/* Keep center bubble hover subtle and avoid washing out colors on others */
+.bubbleCenter:hover,
+.bubbleCenter:focus-visible {
+  filter: brightness(1.05);
+  outline: none;
+}
+
+/* Positions (further from center) */
+.bubbleTop    { left: 50%; top: -10%;    transform: translateX(-50%); }
+.bubbleRight  { top: 50%;  right: -10%;  transform: translateY(-50%); }
+.bubbleBottom { left: 50%; bottom: -10%; transform: translateX(-50%); }
+.bubbleLeft   { top: 50%;  left: -10%;   transform: translateY(-50%); }
+
+/* Selection highlight */
+.bubbleSelected {
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 28px rgba(20, 201, 165, 0.35);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+.bubbleTop.bubbleSelected    { transform: translateX(-50%) scale(1.05); }
+.bubbleRight.bubbleSelected  { transform: translateY(-50%) scale(1.05); }
+.bubbleBottom.bubbleSelected { transform: translateX(-50%) scale(1.05); }
+.bubbleLeft.bubbleSelected   { transform: translateY(-50%) scale(1.05); }
+
+/* Center bubble tint by exposure level (L1..L5) */
+.bubbleCenterL1 { background: rgba(34, 197, 94, 0.35);  border-color: rgba(34, 197, 94, 0.65); }  /* green */
+.bubbleCenterL2 { background: rgba(20, 201, 165, 0.35); border-color: rgba(20, 201, 165, 0.65); } /* teal */
+.bubbleCenterL3 { background: rgba(245, 158, 11, 0.35); border-color: rgba(245, 158, 11, 0.65); } /* amber */
+.bubbleCenterL4 { background: rgba(249, 115, 22, 0.35); border-color: rgba(249, 115, 22, 0.65); } /* orange */
+.bubbleCenterL5 { background: rgba(239, 68, 68, 0.35);  border-color: rgba(239, 68, 68, 0.65); }  /* red */
+
+/* House icon size */
+.homeIcon {
+  width: 1.6rem;
+  height: 1.6rem;
+  fill: currentColor;
+  opacity: 0.95;
+}
+
+/* Center bubble should not receive pointer/selection */
+.bubbleDisplay {
+  pointer-events: none;
+}
+
+/* Online devices list rows */
+.deviceRowTop {
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.deviceRowBottom {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.95;
+  font-size: 0.9rem;
+}
+
+/* Category chip */
+.categoryTag {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Risk pill */
+.riskPill {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  border: 1px solid transparent;
+}
+
+.riskHigh   { background: rgba(239,68,68,0.85);   border-color: rgba(239,68,68,1);   color: #fff; }  /* red */
+.riskMedium { background: rgba(245,158,11,0.85);  border-color: rgba(245,158,11,1);  color: #111; } /* amber */
+.riskLow    { background: rgba(34,197,94,0.85);   border-color: rgba(34,197,94,1);   color: #fff; }  /* green */
+.riskUnknown{ background: rgba(156,163,175,0.55); border-color: rgba(156,163,175,1); color: #fff; } /* gray */
+
+/* Back button (absolute in circle frame) */
+.backBtn {
+  position: absolute;
+  /* Move it further away from the circular edge (works on all sizes) */
+  top: clamp(60px, 10vmin, 44px);
+  left: clamp(60px, 10vmin, 44px);
+
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.backBtn:hover,
+.backBtn:focus-visible {
+  background: rgba(255,255,255,0.18);
+  outline: none;
+}
+
+.backBtnSelected {
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 22px rgba(20, 201, 165, 0.35);
+  transform: translateZ(0) scale(1.03);
+}
+
+.backIcon { width: 1rem; height: 1rem; }
+.backLabel { font-size: 0.9rem; }
+
+/* --- Exposure slider (right edge) --- */
+.exposureRail {
+  position: absolute;
+  top: clamp(60px, 10vmin, 44px);
+  right: clamp(12px, 3vmin, 24px);
+  bottom: clamp(60px, 10vmin, 44px);
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  z-index: 3;
+  gap: 8px;
+}
+
+.exposureSlider {
+  writing-mode: bt-lr;            /* Firefox */
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 100%;
+  transform: rotate(180deg);      /* low at bottom */
+  background: transparent;
+  outline: none;
+}
+
+/* WebKit track/thumb */
+.exposureSlider::-webkit-slider-runnable-track {
+  width: 16px; height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(to top,
+    #2ecc71 0 20%,
+    #f1c40f 20% 60%,
+    #e67e22 60% 80%,
+    #e74c3c 80% 100%
+  );
+}
+.exposureSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35);
+  margin-top: -3px;
+}
+
+/* Firefox track/thumb */
+.exposureSlider::-moz-range-track {
+  width: 16px; height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(to top,
+    #2ecc71 0 20%,
+    #f1c40f 20% 60%,
+    #e67e22 60% 80%,
+    #e74c3c 80% 100%
+  );
+}
+.exposureSlider::-moz-range-thumb {
+  width: 22px; height: 22px; border: none; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35);
+}
+
+.exposureBadge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Vertical exposure slider (right side of dashboard) */
+.exposureWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.exposureLabel {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.exposureRange {
+  /* Make it vertical via rotation */
+  -webkit-appearance: none;
+  appearance: none;
+  width: 240px;         /* becomes HEIGHT after rotate */
+  height: 36px;         /* becomes WIDTH after rotate */
+  transform: rotate(-90deg); /* up = higher value */
+  transform-origin: center;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Track (WebKit) — green (low) -> amber -> red (high) */
+.exposureRange::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #ef4444 100%);
+}
+.exposureRange:focus::-webkit-slider-runnable-track {
+  outline: none;
+}
+
+/* Thumb (WebKit) */
+.exposureRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #111;
+  border: 2px solid #fff;
+  margin-top: -6px; /* center thumb on the 8px track */
+}
+
+/* Firefox track */
+.exposureRange::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #ef4444 100%);
+}
+
+/* Firefox thumb */
+.exposureRange::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #111;
+  border: 2px solid #fff;
+}
+
+/* Tick labels stacked vertically (top=5, bottom=1) */
+.exposureTicks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  font-size: 12px;
+  color: #8a8a8a;
+}
+.exposureTicks span + span {
+  margin-top: 8px;
+}
+
+/* Flex row that holds the circle frame and the right rail */
+.dashboardLayout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+/* Ensure the circular canvas doesn't expand to full width and push the rail down */
+.circleFrame {
+  flex: 0 0 auto; /* don't stretch */
+}
+
+/* Right side rail container */
+.rightSideRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;  /* center slider vertically next to the circle */
+  min-width: 90px;
+  padding: 8px 4px;
+}
+
+/* Optional: make mobile stack vertically */
+@media (max-width: 900px) {
+  .dashboardLayout {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .rightSideRail {
+    order: 2;
+  }
+}
