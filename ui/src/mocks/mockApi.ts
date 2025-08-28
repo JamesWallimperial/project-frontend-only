@@ -52,7 +52,7 @@ function seedDB(): DB {
     {
       mac: "AA:BB:CC:DD:EE:01",
       ip: "10.0.0.101",
-      hostname: "HomePod",
+      hostname: "home-pod",
       signal: -48,
       category: "Smart Speaker",
       sensitivity: "medium",
@@ -88,7 +88,7 @@ function seedDB(): DB {
     {
       mac: "AA:BB:CC:DD:EE:05",
       ip: "10.0.0.105",
-      hostname: "Alans iPhone",
+      hostname: "alans-iphone",
       signal: -70,
       category: "Personal Devices",
       sensitivity: "medium",
@@ -97,7 +97,7 @@ function seedDB(): DB {
     {
       mac: "AA:BB:CC:DD:EE:09",
       ip: "10.0.0.105",
-      hostname: "Lucys iPhone",
+      hostname: "lucys-iphone",
       signal: -70,
       category: "Personal Devices",
       sensitivity: "medium",
@@ -106,7 +106,7 @@ function seedDB(): DB {
         {
       mac: "AA:BB:CC:DD:EE:06",
       ip: "10.0.0.106",
-      hostname: "Peters iPhone",
+      hostname: "peters-iphone",
       signal: -80,
       category: "Childrens Devices",
       sensitivity: "high",
@@ -115,7 +115,7 @@ function seedDB(): DB {
         {
       mac: "AA:BB:CC:DD:EE:07",
       ip: "10.0.0.105",
-      hostname: "Work Laptop",
+      hostname: "work-laptop",
       signal: -90,
       category: "Personal Devices",
       sensitivity: "high",
