@@ -49,33 +49,33 @@ const STATUS_OPTIONS = [
 
 type DeviceStatusStr = typeof STATUS_OPTIONS[number];
 
-function recalcExposure(list: { status?: DeviceStatusStr }[]): number {
-  const st = (s?: DeviceStatusStr) => s ?? "Online";
-  const cloud  = list.filter(c => st(c.status) === "Cloud-Connected").length;
-  const online = list.filter(c => st(c.status) === "Online").length;
+// function recalcExposure(list: { status?: DeviceStatusStr }[]): number {
+//   const st = (s?: DeviceStatusStr) => s ?? "Online";
+//   const cloud  = list.filter(c => st(c.status) === "Cloud-Connected").length;
+//   const online = list.filter(c => st(c.status) === "Online").length;
 
-  if (cloud >= 4) return 5;
-  if (cloud >= 1) return 4;
-  if (online > 3) return 3;
-  if (online >= 1) return 2;
-  return 1;
-}
+//   if (cloud >= 4) return 5;
+//   if (cloud >= 1) return 4;
+//   if (online > 3) return 3;
+//   if (online >= 1) return 2;
+//   return 1;
+// }
 
 // For mocks, mirror backend "rebalance" policy when exposure changes
-function applyPolicyForExposure(list: any[], level: number): any[] {
-  const copy = list.map(d => ({ ...d }));
-  const macs = copy.map(d => d.mac);
-  const set = (mac: string, status: DeviceStatusStr) => {
-    const i = copy.findIndex(c => c.mac === mac);
-    if (i >= 0) copy[i].status = status;
-  };
-  if (level <= 1) macs.forEach(m => set(m, "Local-only"));
-  else if (level === 2) { if (macs[0]) set(macs[0], "Online"); macs.slice(1).forEach(m => set(m, "Local-only")); }
-  else if (level === 3) { macs.slice(0, 4).forEach(m => set(m, "Online")); macs.slice(4).forEach(m => set(m, "Local-only")); }
-  else if (level === 4) { if (macs[0]) set(macs[0], "Cloud-Connected"); macs.slice(1).forEach(m => set(m, "Online")); }
-  else { macs.slice(0, 4).forEach(m => set(m, "Cloud-Connected")); macs.slice(4).forEach(m => set(m, "Online")); }
-  return copy;
-}
+// function applyPolicyForExposure(list: any[], level: number): any[] {
+//   const copy = list.map(d => ({ ...d }));
+//   const macs = copy.map(d => d.mac);
+//   const set = (mac: string, status: DeviceStatusStr) => {
+//     const i = copy.findIndex(c => c.mac === mac);
+//     if (i >= 0) copy[i].status = status;
+//   };
+//   if (level <= 1) macs.forEach(m => set(m, "Local-only"));
+//   else if (level === 2) { if (macs[0]) set(macs[0], "Online"); macs.slice(1).forEach(m => set(m, "Local-only")); }
+//   else if (level === 3) { macs.slice(0, 4).forEach(m => set(m, "Online")); macs.slice(4).forEach(m => set(m, "Local-only")); }
+//   else if (level === 4) { if (macs[0]) set(macs[0], "Cloud-Connected"); macs.slice(1).forEach(m => set(m, "Online")); }
+//   else { macs.slice(0, 4).forEach(m => set(m, "Cloud-Connected")); macs.slice(4).forEach(m => set(m, "Online")); }
+//   return copy;
+// }
 
 export default function App() {
 
@@ -229,7 +229,7 @@ export default function App() {
   // Load initial exposure + clients from mocks
   useEffect(() => {
     getExposure()
-        .then(({ level }) => {
+      .then(({ level }) => {
         if (typeof level === "number") {
           setExposureLevel(Math.max(1, Math.min(5, level)));
         }
@@ -240,10 +240,11 @@ export default function App() {
       .then(({ clients }) => {
         const list = Array.isArray(clients) ? clients : [];
         setClients(list);
-        setExposureLevel(recalcExposure(list));
+        // no local recompute; mockApi derives exposure
       })
       .catch(() => {});
   }, []);
+
 
 
 
@@ -929,28 +930,14 @@ export default function App() {
     const clamped = Math.max(1, Math.min(5, level));
     setExposureLevel(clamped);
   
-    if (USE_MOCKS) {
-      await mockSetExposure(clamped);
-      setClients(prev => applyPolicyForExposure(prev, clamped));
-      return;
-    }
+    // Frontend-only path
+    const { level: confirmed } = await mockSetExposure(clamped);
+    setExposureLevel(confirmed);
   
-    try {
-      const base = getApiBaseUrl();
-      await fetch(`${base}/exposure`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level: clamped }),
-      });
-      // backend rebalances; refresh list
-      fetch(`${base}/wifi/clients_with_meta`, { cache: "no-store" })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(({ clients }) => setClients(Array.isArray(clients) ? clients : []))
-        .catch(() => {});
-    } catch (e) {
-      console.error("setExposure failed", e);
-    }
+    const { clients } = await getClientsWithMeta();
+    setClients(Array.isArray(clients) ? clients : []);
   };
+
 
   
   let content;
@@ -1120,37 +1107,23 @@ export default function App() {
 
       const onChoose = async (status: DeviceStatusStr) => {
         if (!mac) return;
+      
+        try {
+          const { exposureLevel } = await mockSetDeviceStatus(mac, status);
 
-        const applyLocal = () => {
-          // Update clients AND recompute exposure from the updated list
-          setClients(prev => {
-            const updated = prev.map(c => (c.mac === mac ? { ...c, status } : c));
-            setExposureLevel(recalcExposure(updated));
-            return updated;
-          });
+          // Optimistic local device update for snappy UI
+          setClients(prev =>
+            prev.map(c => (c.mac === mac ? { ...c, status } : c))
+          );
+
+          // Trust mock’s derived exposure (preset match or fallback)
+          setExposureLevel(Math.max(1, Math.min(5, exposureLevel)));
+
           setSelectedDevice(null);
           setSelectedIndex(0);
-          setStep(returnStep); // or setStep(7) if you always want Dashboard
-        };
-
-        try {
-          if (USE_MOCKS) {
-           await mockSetDeviceStatus(mac, status); // no-op mock is fine
-            applyLocal();
-            return;
-          }
-
-          const base = getApiBaseUrl();
-          const res = await fetch(`${base}/devices/${mac}/status`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
-          });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          applyLocal();
+          setStep(returnStep);
         } catch (err) {
-          console.error("Failed to persist status; applying locally anyway:", err);
-          applyLocal();
+          console.error("Mock status save failed", err);
         }
       };
 
