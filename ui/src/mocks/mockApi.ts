@@ -1,4 +1,4 @@
-m// ui/src/mocks/mockApi.ts
+// ui/src/mocks/mockApi.ts
 
 // ---- Types (kept simple to match App.tsx) ----
 export type DeviceStatusStr =
@@ -18,7 +18,8 @@ export interface WiFiClient {
 }
 
 // ---- LocalStorage-backed mock DB ----
-const LS_KEY = "mockApi.db.v1";
+// Bump key to force a clean reseed after we add presets
+const LS_KEY = "mockApi.db.v2";
 
 type DB = {
   clients: WiFiClient[];
@@ -26,12 +27,55 @@ type DB = {
   exposureLevel: number; // 1..5
 };
 
+// ==== HOSTNAME PRESETS (your exact mapping) ====
+// For any device not named here, we'll ignore it when matching a level,
+// and default it to "Local-only" when applying a preset.
+const LEVEL_PRESETS: Record<
+  number,
+  { local: string[]; online: string[]; cloud: string[] }
+> = {
+  1: {
+    local: [
+      "HomePod",
+      "tapo-cam-front",
+      "tv-lounge",
+      "roomba",
+      "Alans iPhone",
+      "Lucys iPhone",
+      "Peters iPhone",
+      "Work Laptop",
+    ],
+    online: [],
+    cloud: [],
+  },
+  2: {
+    local: ["Peters iPhone", "roomba", "tapo-cam-front", "Work Laptop", "HomePod"],
+    online: ["tv-lounge", "Alans iPhone", "Lucys iPhone"],
+    cloud: [],
+  },
+  3: {
+    local: ["roomba", "tapo-cam-front", "Work Laptop"],
+    online: ["Peters iPhone", "Alans iPhone", "Lucys iPhone", "tv-lounge", "HomePod"],
+    cloud: [],
+  },
+  4: {
+    local: ["roomba", "tv-lounge"],
+    online: ["Peters iPhone", "Alans iPhone", "Lucys iPhone", "tapo-cam-front"],
+    cloud: ["Work Laptop", "HomePod"],
+  },
+  5: {
+    local: ["Work Laptop"],
+    online: ["Peters iPhone", "Alans iPhone", "Lucys iPhone"],
+    cloud: ["roomba", "tv-lounge", "HomePod", "tapo-cam-front"],
+  },
+};
+
+// ---- DB helpers ----
 function loadDB(): DB {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const parsed: DB = JSON.parse(raw);
-      // ensure types
       if (Array.isArray(parsed.clients)) {
         parsed.exposureLevel = clamp(1, 5, Number(parsed.exposureLevel) || 1);
         return parsed;
@@ -48,11 +92,13 @@ function saveDB(db: DB) {
 }
 
 function seedDB(): DB {
+  // (same starter set you showed, any initial statuses are fine—they’ll be
+  // overridden by the preset once we derive exposure)
   const clients: WiFiClient[] = [
     {
       mac: "AA:BB:CC:DD:EE:01",
       ip: "10.0.0.101",
-      hostname: "home-pod",
+      hostname: "HomePod",
       signal: -48,
       category: "Smart Speaker",
       sensitivity: "medium",
@@ -88,7 +134,7 @@ function seedDB(): DB {
     {
       mac: "AA:BB:CC:DD:EE:05",
       ip: "10.0.0.105",
-      hostname: "alans-iphone",
+      hostname: "Alans iPhone",
       signal: -70,
       category: "Personal Devices",
       sensitivity: "medium",
@@ -97,25 +143,25 @@ function seedDB(): DB {
     {
       mac: "AA:BB:CC:DD:EE:09",
       ip: "10.0.0.105",
-      hostname: "lucys-iphone",
+      hostname: "Lucys iPhone",
       signal: -70,
       category: "Personal Devices",
       sensitivity: "medium",
       status: "Cloud-Connected",
     },
-        {
+    {
       mac: "AA:BB:CC:DD:EE:06",
       ip: "10.0.0.106",
-      hostname: "peters-iphone",
+      hostname: "Peters iPhone",
       signal: -80,
       category: "Childrens Devices",
       sensitivity: "high",
       status: "Cloud-Connected",
     },
-        {
+    {
       mac: "AA:BB:CC:DD:EE:07",
       ip: "10.0.0.105",
-      hostname: "work-laptop",
+      hostname: "Work Laptop",
       signal: -90,
       category: "Personal Devices",
       sensitivity: "high",
@@ -123,16 +169,18 @@ function seedDB(): DB {
     },
   ];
 
-  const { exposure } = countAndDeriveExposure(clients);
+  // Set initial exposure to the closest preset level the current statuses match
+  const exposure = chooseLevelFromCurrent(clients) ?? deriveExposureFromCounts(clients);
   return { clients, exposureLevel: exposure };
 }
 
-// ---- Helpers ----
+// ---- Matching / derivation helpers ----
 function clamp(min: number, max: number, n: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-function countAndDeriveExposure(clients: WiFiClient[]) {
+// Fallback count rule (used if we don't match a named preset exactly)
+function deriveExposureFromCounts(clients: WiFiClient[]) {
   let local = 0,
     online = 0,
     cloud = 0;
@@ -141,55 +189,74 @@ function countAndDeriveExposure(clients: WiFiClient[]) {
     if (s === "Cloud-Connected") cloud++;
     else if (s === "Online") online++;
     else if (s === "Local-only") local++;
-    // "Disconnected" not counted
   }
-
-  // Your rules:
-  // - cloud >= 4                      -> 5
-  // - cloud >= 1 (and <4)             -> 4
-  // - cloud == 0 and online > 3       -> 3
-  // - cloud == 0 and online >= 1      -> 2
-  // - cloud == 0 and online == 0      -> 1
-  let exposure = 1;
-  if (cloud >= 4) exposure = 5;
-  else if (cloud >= 1) exposure = 4;
-  else if (online > 3) exposure = 3;
-  else if (online >= 1) exposure = 2;
-  else exposure = 1;
-
-  return { local, online, cloud, exposure };
+  if (cloud >= 4) return 5;
+  if (cloud >= 1) return 4;
+  if (online > 3) return 3;
+  if (online >= 1) return 2;
+  return 1;
 }
 
-function rebalanceForExposure(db: DB, level: number) {
-  // Keep the same order, just adjust statuses
-  const list = db.clients.slice();
+// Try to find a preset level that matches the CURRENT device statuses.
+// We match only devices we know about in the preset; devices not present
+// in the preset are ignored for matching (so you can add extras if needed).
+function chooseLevelFromCurrent(clients: WiFiClient[]): number | null {
+  const byName = new Map(clients.map((c) => [c.hostname, c.status ?? "Online"]));
+  for (let level = 1; level <= 5; level++) {
+    const preset = LEVEL_PRESETS[level];
+    let ok = true;
 
-  if (level <= 1) {
-    // 1 -> all Local-only
-    for (const c of list) c.status = "Local-only";
-  } else if (level === 2) {
-    // 2 -> 1 Online, rest Local-only
-    list.forEach((c, i) => (c.status = i === 0 ? "Online" : "Local-only"));
-  } else if (level === 3) {
-    // 3 -> >3 Online (up to 4), rest Local-only
-    list.forEach((c, i) => (c.status = i < 4 ? "Online" : "Local-only"));
-  } else if (level === 4) {
-    // 4 -> 1 Cloud-Connected, rest Online
-    list.forEach((c, i) => (c.status = i === 0 ? "Cloud-Connected" : "Online"));
-  } else {
-    // 5 -> >3 Cloud-Connected (up to 4), rest Online
-    list.forEach((c, i) => (c.status = i < 4 ? "Cloud-Connected" : "Online"));
+    for (const h of preset.local) {
+      if (byName.get(h) !== "Local-only") {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) continue;
+
+    for (const h of preset.online) {
+      if (byName.get(h) !== "Online") {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) continue;
+
+    for (const h of preset.cloud) {
+      if (byName.get(h) !== "Cloud-Connected") {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return level;
   }
+  return null;
+}
 
-  db.clients = list;
-  db.exposureLevel = clamp(1, 5, level);
+// Apply a preset to ALL known clients.
+// Devices not listed in the preset are set to Local-only by default.
+function applyPresetForExposure(db: DB, level: number) {
+  const preset = LEVEL_PRESETS[level] ?? LEVEL_PRESETS[1];
+  const toStatus = new Map<string, DeviceStatusStr>();
+
+  for (const h of preset.local) toStatus.set(h, "Local-only");
+  for (const h of preset.online) toStatus.set(h, "Online");
+  for (const h of preset.cloud) toStatus.set(h, "Cloud-Connected");
+
+  db.clients = db.clients.map((c) => {
+    const s = toStatus.get(c.hostname) ?? "Local-only";
+    return { ...c, status: s };
+  });
+
+  db.exposureLevel = level;
 }
 
 // ---- Public API (Promise-based to mimic network) ----
 export async function getClientsWithMeta(): Promise<{ clients: WiFiClient[] }> {
   const db = loadDB();
-  // keep exposure derived from clients
-  db.exposureLevel = countAndDeriveExposure(db.clients).exposure;
+  // keep exposure derived from clients (prefer preset match; else counts)
+  db.exposureLevel =
+    chooseLevelFromCurrent(db.clients) ?? deriveExposureFromCounts(db.clients);
   saveDB(db);
   return wait({ clients: db.clients });
 }
@@ -199,20 +266,24 @@ export async function setDeviceStatus(
   status: DeviceStatusStr
 ): Promise<{ ok: true; exposureLevel: number }> {
   const db = loadDB();
-  const idx = db.clients.findIndex((c) => c.mac.toLowerCase() === mac.toLowerCase());
+  const idx = db.clients.findIndex(
+    (c) => c.mac.toLowerCase() === mac.toLowerCase()
+  );
   if (idx >= 0) {
     db.clients[idx] = { ...db.clients[idx], status };
-    // derive exposure after individual change
-    db.exposureLevel = countAndDeriveExposure(db.clients).exposure;
-    saveDB(db);
   }
+  // After individual change, try to recognize a preset first,
+  // otherwise fall back to counts.
+  db.exposureLevel =
+    chooseLevelFromCurrent(db.clients) ?? deriveExposureFromCounts(db.clients);
+  saveDB(db);
   return wait({ ok: true, exposureLevel: db.exposureLevel });
 }
 
 export async function getExposure(): Promise<{ level: number }> {
   const db = loadDB();
-  // ensure derived & synced
-  db.exposureLevel = countAndDeriveExposure(db.clients).exposure;
+  db.exposureLevel =
+    chooseLevelFromCurrent(db.clients) ?? deriveExposureFromCounts(db.clients);
   saveDB(db);
   return wait({ level: db.exposureLevel });
 }
@@ -220,8 +291,7 @@ export async function getExposure(): Promise<{ level: number }> {
 export async function setExposure(level: number): Promise<{ level: number }> {
   const db = loadDB();
   const clamped = clamp(1, 5, Number(level) || 1);
-  rebalanceForExposure(db, clamped);
-  // After rebalance, exposure should match requested level (by definition)
+  applyPresetForExposure(db, clamped);
   saveDB(db);
   return wait({ level: db.exposureLevel });
 }
