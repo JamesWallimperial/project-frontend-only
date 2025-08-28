@@ -52,7 +52,7 @@ function seedDB(): DB {
     {
       mac: "AA:BB:CC:DD:EE:01",
       ip: "10.0.0.101",
-      hostname: "kitchen-speaker",
+      hostname: "HomePod",
       signal: -48,
       category: "Smart Speaker",
       sensitivity: "medium",
