@@ -866,7 +866,6 @@ export default function App() {
           setSelectedIndex(0);
 
           // optional recompute of exposure from loaded clients
-          setExposureLevel(recalcExposure(list));
 
           const remaining = list.filter((c: any) => !c.category || !c.sensitivity);
           if (remaining.length === 0) setStep(6);
