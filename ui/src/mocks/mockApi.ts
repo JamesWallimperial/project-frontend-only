@@ -1,4 +1,4 @@
-// ui/src/mocks/mockApi.ts
+m// ui/src/mocks/mockApi.ts
 
 // ---- Types (kept simple to match App.tsx) ----
 export type DeviceStatusStr =
@@ -61,7 +61,7 @@ function seedDB(): DB {
     {
       mac: "AA:BB:CC:DD:EE:02",
       ip: "10.0.0.102",
-      hostname: "nest-cam-front",
+      hostname: "tapo-cam-front",
       signal: -61,
       category: "Security & Monitoring",
       sensitivity: "high",
@@ -91,7 +91,7 @@ function seedDB(): DB {
       hostname: "Alans iPhone",
       signal: -70,
       category: "Personal Devices",
-      sensitivity: "high",
+      sensitivity: "medium",
       status: "Cloud-Connected",
     },
     {
@@ -100,7 +100,7 @@ function seedDB(): DB {
       hostname: "Lucys iPhone",
       signal: -70,
       category: "Personal Devices",
-      sensitivity: "high",
+      sensitivity: "medium",
       status: "Cloud-Connected",
     },
         {
