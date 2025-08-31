@@ -16,7 +16,7 @@ export default function DashboardScreen({
   localOnly, online, cloud,
   exposureLevel,
   selectedIndex, onActivate,
-  onExposureChange,               // <-- make sure this is here
+  onExposureChange,               
 }: Props) {
   const isSel = (i: number) => (selectedIndex === i ? styles.bubbleSelected : "");
   const level = Math.max(1, Math.min(5, exposureLevel));
