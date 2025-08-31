@@ -22,11 +22,11 @@ export default function DashboardScreen({
   const level = Math.max(1, Math.min(5, exposureLevel));
 
   const exposureSummaries: Record<number, string> = {
-    1: "All devices local-only: iPhone, TV, thermostat.",
-    2: "Only iPhone online; others local-only.",
-    3: "High activity: TV, laptop, tablet, speaker online.",
-    4: "Alert: Nest Cam cloud-connected; others online.",
-    5: "Critical: cameras, doorbell, hub cloud-connected; high risk.",
+    1: "Secure: All devices local-only",
+    2: "Activity: TV and iPhones online; others local-only.",
+    3: "High activity: TV, Kids Phone, speaker online.",
+    4: "Alert: Homepod and Work Laptop cloud connected",
+    5: "Critical: cameras, roomba, TV, Speaker cloud-connected; high risk.",
   };
   const summary = exposureSummaries[level] ?? "System status unknown";
 
