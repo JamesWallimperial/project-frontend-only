@@ -671,7 +671,16 @@
   z-index: 1;
 }
 
+/* Labels */
+.exposureTopLabel,
+.exposureBottomLabel {
+  font-weight: 600;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
 
+.exposureTopLabel { margin-bottom: 2px; }
+.exposureBottomLabel { margin-top: 2px; }
 
 /* Optional: make mobile stack vertically */
 @media (max-width: 900px) {
