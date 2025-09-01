@@ -624,6 +624,53 @@
   margin-top: 0;
 }
 
+/* Force LEFT (ticks) → RIGHT (slider) */
+.rightSideRail .exposureWrap {
+  display: flex;
+  flex-direction: row;   /* was column */
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+/* Ticks: same height as slider, right-aligned, evenly spaced top→bottom */
+.rightSideRail .exposureTicks {
+  height: 240px;               /* or var(--slider-length) if you set it */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;       /* shove numbers to the RIGHT edge */
+  text-align: right;           /* text itself right-aligned */
+  margin-right: 6px;           /* breathing room from the slider */
+  line-height: 1;
+  font-size: 12px;
+  color: #8a8a8a;
+}
+
+/* Slider viewport from Fix A (keeps the slider’s visual height reserved) */
+.rightSideRail .exposureViewport {
+  width: 36px;                 /* or var(--slider-thickness) */
+  height: 240px;               /* or var(--slider-length) */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Rotated slider anchored inside the viewport */
+.rightSideRail .exposureRange {
+  position: absolute;
+  width: 240px;                /* becomes HEIGHT after rotate */
+  height: 36px;                /* becomes WIDTH after rotate */
+  transform: rotate(-90deg);
+  transform-origin: center;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  z-index: 1;
+}
+
 
 
 /* Optional: make mobile stack vertically */
