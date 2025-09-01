@@ -945,7 +945,7 @@ export default function App() {
       content = <Startup onStart={() => setStep(1)} />;
       break;
     case 1:
-      content = <AccessPoint onContinue={() => setStep(2)} />;
+      content = <AccessPoint onContinue={() => setStep(7)} />;
       break;
     case 2:
       content = <HomeAssistant onContinue={() => setStep(3)} />;
