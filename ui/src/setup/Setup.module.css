@@ -631,14 +631,19 @@
   text-align: right;
   line-height: 1;
   font-size: 12px;
+  font-weight: 400;
   color: #8a8a8a;
 }
 .exposureTicks span + span { margin-top: 0; }
 
 /* Labels */
-.exposureTopLabel,
-.exposureBottomLabel {
-  font-weight: 600;
+.exposureTopLabel{
+  font-weight: 700;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+.exposureBottomLabel{
+  font-weight: 400;
   font-size: 0.95rem;
   opacity: 0.9;
 }
