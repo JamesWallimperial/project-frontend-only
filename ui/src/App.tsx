@@ -942,7 +942,7 @@ export default function App() {
   let content;
   switch (step) {
     case 0:
-      content = <Startup onStart={() => setStep(1)} />;
+      content = <Startup onStart={() => setStep(7)} />;
       break;
     case 1:
       content = <AccessPoint onContinue={() => setStep(7)} />;
