@@ -25,7 +25,7 @@ export default function DashboardScreen({
     1: "Secure: All devices local-only",
     2: "Activity: TV and iPhones online; others local-only.",
     3: "High activity: TV, Kids Phone, speaker online.",
-    4: "Alert: Homepod and Work Laptop cloud connected",
+    4: "Alert: Sharing video, audio and facial recognition data to cloud servers",
     5: "Critical: cameras, roomba, TV, Speaker cloud-connected; high risk.",
   };
   const summary = exposureSummaries[level] ?? "System status unknown";
