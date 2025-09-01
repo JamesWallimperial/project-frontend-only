@@ -586,6 +586,31 @@
   padding: 8px 4px;
 }
 
+/* Reserve vertical space equal to the rotated slider's visual height */
+.exposureViewport {
+  width: 36px;        /* slider thickness before rotate */
+  height: 240px;      /* slider length after rotate */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Make sure the rotated control can overlap only within the viewport */
+.exposureRange {
+  position: absolute; /* anchor inside the viewport */
+  z-index: 1;
+}
+
+/* Ensure tick labels render above if they visually intersect */
+.exposureTicks {
+  position: relative;
+  z-index: 2;
+}
+
+
+
+
 /* Optional: make mobile stack vertically */
 @media (max-width: 900px) {
   .dashboardLayout {
