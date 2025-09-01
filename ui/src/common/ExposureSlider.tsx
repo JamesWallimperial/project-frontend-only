@@ -6,6 +6,7 @@ type Props = {
   onChange: (level: number) => void;
 };
 
+// ExposureSlider.tsx
 export default function ExposureSlider({ value, onChange }: Props) {
   const level = Math.max(1, Math.min(5, value));
   const handle = (e: ChangeEvent<HTMLInputElement>) => {
@@ -16,22 +17,24 @@ export default function ExposureSlider({ value, onChange }: Props) {
 
   return (
     <div className={styles.exposureWrap}>
-      
-      <input
-        type="range"
-        min={1}
-        max={5}
-        step={1}
-        value={level}
-        onChange={handle}
-        className={styles.exposureRange}
-        aria-label="Exposure level"
-        aria-orientation="vertical"
-        aria-valuemin={1}
-        aria-valuemax={5}
-        aria-valuenow={level}
-        aria-valuetext={ariaText[level - 1]}
-      />
+      <div className={styles.exposureViewport}>
+        <input
+          type="range"
+          min={1}
+          max={5}
+          step={1}
+          value={level}
+          onChange={handle}
+          className={styles.exposureRange}
+          aria-label="Exposure level"
+          aria-orientation="vertical"
+          aria-valuemin={1}
+          aria-valuemax={5}
+          aria-valuenow={level}
+          aria-valuetext={ariaText[level - 1]}
+        />
+      </div>
+
       <div className={styles.exposureTicks} aria-hidden="true">
         <span>5</span>
         <span>4</span>
