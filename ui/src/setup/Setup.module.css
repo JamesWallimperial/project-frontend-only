@@ -576,18 +576,32 @@
   flex: 0 0 auto; /* don't stretch */
 }
 
-/* Right side rail container */
-.rightSideRail {
+/* Optional: centralize sizes once */
+:root {
+  --slider-length: 240px;     /* visual height of the vertical slider */
+  --slider-thickness: 36px;   /* visual width of the vertical slider */
+}
+
+/* Entire control: column stack (Top label → Row → Bottom label) */
+.rightSideRail .exposureWrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;  /* center slider vertically next to the circle */
-  min-width: 90px;
-  padding: 8px 4px;
+  gap: 6px;
 }
+
+/* Row: ticks LEFT, slider RIGHT */
+.exposureRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;               /* space between ticks and slider */
+}
+
+/* Viewport from Fix A */
 .exposureViewport {
-  width: 36px;          /* slider thickness before rotation */
-  height: 240px;        /* visual height of the rotated slider */
+  width: var(--slider-thickness);
+  height: var(--slider-length);
   position: relative;
   display: flex;
   align-items: center;
@@ -597,8 +611,8 @@
 /* Rotated slider anchored inside the viewport */
 .exposureRange {
   position: absolute;
-  width: 240px;         /* becomes HEIGHT after rotate */
-  height: 36px;         /* becomes WIDTH after rotate */
+  width: var(--slider-length);       /* becomes HEIGHT after rotate */
+  height: var(--slider-thickness);   /* becomes WIDTH after rotate */
   transform: rotate(-90deg);
   transform-origin: center;
   background: transparent;
@@ -607,69 +621,19 @@
   z-index: 1;
 }
 
-/* Ticks: same height as the slider, evenly spaced top→bottom */
+/* Ticks: match slider height, evenly spaced top→bottom, right-aligned */
 .exposureTicks {
-  height: 240px;                 /* match .exposureViewport height */
+  height: var(--slider-length);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;/* equal spacing */
-  align-items: flex-end;         /* right-align text next to slider */
+  justify-content: space-between;
+  align-items: flex-end;       /* numbers sit right next to the slider */
+  text-align: right;
   line-height: 1;
   font-size: 12px;
   color: #8a8a8a;
 }
-
-/* Remove the old vertical stacking spacing if it exists */
-.exposureTicks span + span {
-  margin-top: 0;
-}
-
-/* Force LEFT (ticks) → RIGHT (slider) */
-.rightSideRail .exposureWrap {
-  display: flex;
-  flex-direction: row;   /* was column */
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: nowrap;
-}
-
-/* Ticks: same height as slider, right-aligned, evenly spaced top→bottom */
-.rightSideRail .exposureTicks {
-  height: 240px;               /* or var(--slider-length) if you set it */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;       /* shove numbers to the RIGHT edge */
-  text-align: right;           /* text itself right-aligned */
-  margin-right: 6px;           /* breathing room from the slider */
-  line-height: 1;
-  font-size: 18px;
-  color: #8a8a8a;
-}
-
-/* Slider viewport from Fix A (keeps the slider’s visual height reserved) */
-.rightSideRail .exposureViewport {
-  width: 36px;                 /* or var(--slider-thickness) */
-  height: 240px;               /* or var(--slider-length) */
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Rotated slider anchored inside the viewport */
-.rightSideRail .exposureRange {
-  position: absolute;
-  width: 240px;                /* becomes HEIGHT after rotate */
-  height: 36px;                /* becomes WIDTH after rotate */
-  transform: rotate(-90deg);
-  transform-origin: center;
-  background: transparent;
-  outline: none;
-  cursor: pointer;
-  z-index: 1;
-}
+.exposureTicks span + span { margin-top: 0; }
 
 /* Labels */
 .exposureTopLabel,
@@ -681,6 +645,7 @@
 
 .exposureTopLabel { margin-bottom: 2px; }
 .exposureBottomLabel { margin-top: 2px; }
+
 
 /* Optional: make mobile stack vertically */
 @media (max-width: 900px) {
