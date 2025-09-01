@@ -6,8 +6,6 @@ type Props = {
   onChange: (level: number) => void;
 };
 
-// ExposureSlider.tsx
-// ExposureSlider.tsx
 export default function ExposureSlider({ value, onChange }: Props) {
   const level = Math.max(1, Math.min(5, value));
   const handle = (e: ChangeEvent<HTMLInputElement>) => onChange(Number(e.target.value));
@@ -15,32 +13,44 @@ export default function ExposureSlider({ value, onChange }: Props) {
 
   return (
     <div className={styles.exposureWrap}>
-      {/* Ticks on the LEFT (top→bottom = 5→1) */}
-      <div className={styles.exposureTicks} aria-hidden="true">
-        <span>5</span>
-        <span>4</span>
-        <span>3</span>
-        <span>2</span>
-        <span>1</span>
+      {/* Top label */}
+      <div className={styles.exposureTopLabel} id="exposureTopLabel">
+        Master Control
       </div>
 
-      {/* Slider on the RIGHT */}
-      <div className={styles.exposureViewport}>
-        <input
-          type="range"
-          min={1}
-          max={5}
-          step={1}
-          value={level}
-          onChange={handle}
-          className={styles.exposureRange}
-          aria-label="Exposure level"
-          aria-orientation="vertical"
-          aria-valuemin={1}
-          aria-valuemax={5}
-          aria-valuenow={level}
-          aria-valuetext={ariaText[level - 1]}
-        />
+      {/* Row: ticks (left) + slider (right) */}
+      <div className={styles.exposureRow}>
+        <div className={styles.exposureTicks} aria-hidden="true">
+          <span>5</span>
+          <span>4</span>
+          <span>3</span>
+          <span>2</span>
+          <span>1</span>
+        </div>
+
+        <div className={styles.exposureViewport}>
+          <input
+            id="exposureSlider"
+            type="range"
+            min={1}
+            max={5}
+            step={1}
+            value={level}
+            onChange={handle}
+            className={styles.exposureRange}
+            aria-orientation="vertical"
+            aria-valuemin={1}
+            aria-valuemax={5}
+            aria-valuenow={level}
+            aria-valuetext={ariaText[level - 1]}
+            aria-labelledby="exposureTopLabel exposureBottomLabel"
+          />
+        </div>
+      </div>
+
+      {/* Bottom label */}
+      <div className={styles.exposureBottomLabel} id="exposureBottomLabel">
+        Exposure
       </div>
     </div>
   );
