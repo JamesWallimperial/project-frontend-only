@@ -585,29 +585,44 @@
   min-width: 90px;
   padding: 8px 4px;
 }
-
-/* Reserve vertical space equal to the rotated slider's visual height */
 .exposureViewport {
-  width: 36px;        /* slider thickness before rotate */
-  height: 240px;      /* slider length after rotate */
+  width: 36px;          /* slider thickness before rotation */
+  height: 240px;        /* visual height of the rotated slider */
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Make sure the rotated control can overlap only within the viewport */
+/* Rotated slider anchored inside the viewport */
 .exposureRange {
-  position: absolute; /* anchor inside the viewport */
+  position: absolute;
+  width: 240px;         /* becomes HEIGHT after rotate */
+  height: 36px;         /* becomes WIDTH after rotate */
+  transform: rotate(-90deg);
+  transform-origin: center;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
   z-index: 1;
 }
 
-/* Ensure tick labels render above if they visually intersect */
+/* Ticks: same height as the slider, evenly spaced top→bottom */
 .exposureTicks {
-  position: relative;
-  z-index: 2;
+  height: 240px;                 /* match .exposureViewport height */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;/* equal spacing */
+  align-items: flex-end;         /* right-align text next to slider */
+  line-height: 1;
+  font-size: 12px;
+  color: #8a8a8a;
 }
 
+/* Remove the old vertical stacking spacing if it exists */
+.exposureTicks span + span {
+  margin-top: 0;
+}
 
 
 
